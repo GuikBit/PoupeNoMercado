@@ -145,6 +145,9 @@ export function CaptureView({ onPhoto, onError, disabled }: CaptureViewProps) {
         device={device}
         isActive={isActive}
         photo
+        // SurfaceView (padrão) desenha numa camada própria e vaza por cima
+        // da barra de botões; TextureView respeita o layout e o clipping.
+        androidPreviewViewType="texture-view"
       />
       {/* Retículo: enquadre a etiqueta aqui — é o recorte usado no fallback. */}
       <YStack
