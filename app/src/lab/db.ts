@@ -35,9 +35,18 @@ export function migrate(db: LabDb): void {
   db.execSync(CREATE_LAB_CASE_TABLE);
 }
 
-/** Abre (e migra) o banco do Laboratório. Só chame em runtime de device. */
+let singleton: LabDb | null = null;
+
+/**
+ * Abre (e migra) o banco do Laboratório — UMA vez por processo.
+ * Reabrir a cada mount da tela dispara NullPointerException no Android:
+ * o handle antigo é finalizado enquanto o novo usa a mesma conexão.
+ */
 export function openLabDb(): LabDb {
-  const db = openDatabaseSync('lab.db');
-  migrate(db);
-  return db;
+  if (!singleton) {
+    const db = openDatabaseSync('lab.db');
+    migrate(db);
+    singleton = db;
+  }
+  return singleton;
 }

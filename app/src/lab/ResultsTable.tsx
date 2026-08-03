@@ -14,7 +14,17 @@ function runSummary(run: EngineRun): { price: string; detail: string; ok: boolea
     return { price: '—', detail: run.error, ok: false };
   }
   if (!run.parsed) {
-    return { price: '—', detail: 'parser rejeitou a leitura', ok: false };
+    // Mostra o texto bruto para separar "OCR não leu" de "parser rejeitou".
+    const rawText = run.ocrRaw
+      .map((block) => block.text)
+      .join(' · ')
+      .trim();
+    const excerpt = rawText.length > 180 ? `${rawText.slice(0, 180)}…` : rawText;
+    return {
+      price: '—',
+      detail: excerpt.length > 0 ? `parser rejeitou. OCR leu: "${excerpt}"` : 'OCR não devolveu texto',
+      ok: false,
+    };
   }
   const { pricing } = run.parsed;
   const tiers = pricing.tiers

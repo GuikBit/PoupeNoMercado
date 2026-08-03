@@ -87,7 +87,8 @@ function saveMat(mat: Mat, tag: string): ImageRef {
     dir.create();
   }
   const file = new File(dir, `${tag}-${Date.now()}.jpg`);
-  mat.saveToFile(file.uri.replace('file://', ''), 'jpeg', 90);
+  // Compressão na escala 0..1 (a v1 do fast-opencv rejeita 0..100).
+  mat.saveToFile(file.uri.replace('file://', ''), 'jpeg', 0.9);
   return { uri: file.uri, width: mat.cols, height: mat.rows };
 }
 
@@ -142,17 +143,17 @@ export async function detectLabel(photo: ImageRef): Promise<DetectResult> {
     if (quad) {
       const corners = orderCorners(quad);
       const target = targetSizeFromQuad(corners);
-      const srcPts = track(
-        Point2fVector.create(corners.map((p) => Point2f.create(p.x, p.y))),
-      );
-      const dstPts = track(
-        Point2fVector.create([
-          Point2f.create(0, 0),
-          Point2f.create(target.width, 0),
-          Point2f.create(target.width, target.height),
-          Point2f.create(0, target.height),
-        ]),
-      );
+      // Popular com push(): o create([...]) com array deixa o vetor vazio no
+      // binding e o getPerspectiveTransform falha com checkVector != 4.
+      const srcPts = track(Point2fVector.create());
+      for (const p of corners) {
+        srcPts.push(Point2f.create(p.x, p.y));
+      }
+      const dstPts = track(Point2fVector.create());
+      dstPts.push(Point2f.create(0, 0));
+      dstPts.push(Point2f.create(target.width, 0));
+      dstPts.push(Point2f.create(target.width, target.height));
+      dstPts.push(Point2f.create(0, target.height));
       const transform = track(OpenCV.getPerspectiveTransform(srcPts, dstPts, DecompTypes.DECOMP_LU));
       const out = track(Mat.create(0, 0, DataTypes.CV_8U));
       OpenCV.warpPerspective(
