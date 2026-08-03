@@ -83,7 +83,7 @@ salva no disco.
       maior quadrilátero → `warpPerspective` (geometria pura em `geometry.ts`)
 - [x] Fallback: sem quadrilátero confiável, usa o recorte do guia visual
 - [x] Guia visual (retículo) sobreposto na câmera (`src/lab/CaptureView.tsx`)
-- [ ] Teste com as 13 fotos de `Etiquetas/` (manual, em device, via modo importar)
+- [x] Teste com as 13 fotos de `Etiquetas/` (manual, em device, via modo importar — 03/08/2026)
 
 ### 1.3 Parser v1
 > Especificação em `docs/02-MOTOR-RECONHECIMENTO.md` §6. **Siga-a literalmente.**
@@ -115,7 +115,10 @@ salva no disco.
 - [x] Persistência em SQLite local (`expo-sqlite` puro; Drizzle só na Etapa 5)
 - [x] Exportação: árvore de fixtures (docs/02 §9) + `expo-sharing` do índice;
       imagens em massa via `adb pull`
-- [ ] **Validação em device** — critério de conclusão abaixo
+- [x] **Validação em device** — ✅ 03/08/2026 (Galaxy S24 Ultra): 21 casos de teste
+      capturados/importados, comparação lado a lado, gabarito, persistência e export
+      funcionando; parser endurecido com os casos reais (variantes de R$, âncora
+      quebrada, base fundido com medida)
 
 **✅ Concluída quando:** você aponta para uma etiqueta em casa, vê os dois
 resultados lado a lado, preenche o gabarito e o caso é salvo.
@@ -129,8 +132,9 @@ resultados lado a lado, preenche o gabarito e o caso é salvo.
 - [ ] Checklist pré-saída (`docs/06-PLANO-VALIDACAO.md` §4)
 - [ ] **Ida ao mercado (~45 min)** — cumprir a cota por tipo:
       A=15 · **B=20** · **C=15** · D=5 · adversariais=5
-- [ ] Exportar e copiar para `app/fixtures/labels/`
-- [ ] `app/scripts/analyze-lab.ts` — relatório com M1–M7 segmentado por tipo
+- [ ] Exportar e copiar para `app/fixtures/labels/` (+ `cases.json` na raiz do export)
+- [x] `app/scripts/analyze-lab.ts` — relatório com M1–M7 segmentado por tipo
+      (`npm run analyze:lab -- <cases.json>`; re-roda o parser atual sobre o OCR bruto)
 - [ ] Revisão qualitativa: erros confiantes, discordâncias, adversariais
 - [ ] Relatório em `docs/resultados/lab-YYYY-MM-DD.md`
 - [ ] **Atualizar ADR-002** em `docs/01-ARQUITETURA.md` com a decisão

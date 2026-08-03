@@ -42,8 +42,8 @@ sempre que a quantidade muda.
 
 | | |
 |---|---|
-| **Fase** | Fase 0 — Etapa 0 ✅ · Etapa 1 código completo (falta validar o Laboratório em device) |
-| **Próximo passo** | Validar o Lab em device (etiqueta em casa + 13 fotos de `Etiquetas/`) → Etapa 2: coleta e decisão |
+| **Fase** | Fase 0 — Etapas 0 e 1 ✅ concluídas e validadas em device (Galaxy S24 Ultra) |
+| **Próximo passo** | Etapa 2 🚪: ida ao mercado (60 casos: A=15, B=20, C=15, D=5, adversariais=5) → `npm run analyze:lab` → decisão do motor (ADR-002) |
 | **Código escrito** | App base (Expo SDK 57, Router, Tamagui, VisionCamera v4, Jest, CI) · parser v1 completo com T1–T14 · domínio de preço · adaptadores ML Kit (módulo local) e Cloud Vision · detector OpenCV · tela do Laboratório com SQLite e export |
 | **Decisão pendente** | Qual motor de OCR usar (será decidida por medição, não no papel) |
 
@@ -201,6 +201,7 @@ npm run typecheck
 npm run lint
 npm run format
 npm run test
+npm run analyze:lab -- <cases.json>   # relatório M1–M7 sobre um export do Lab
 
 # Backend (a partir da Etapa 6)
 cd api && go mod download
