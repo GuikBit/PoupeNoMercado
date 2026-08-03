@@ -6,11 +6,12 @@ export default function Home() {
     <YStack flex={1} items="center" justify="center" gap="$4" p="$4">
       <H2>Poupe no Mercado</H2>
       <Paragraph text="center" color="$color10">
-        Etapa 0 — fundação. A tela de captura valida câmera + salvamento em disco.
+        Fase 0 — Laboratório de Etiquetas: compara ML Kit e Cloud Vision no mesmo frame para
+        decidir o motor de OCR.
       </Paragraph>
-      <Link href="/scan" asChild>
+      <Link href="/lab" asChild>
         <Button theme="accent" size="$5">
-          Abrir câmera
+          Abrir Laboratório
         </Button>
       </Link>
     </YStack>
