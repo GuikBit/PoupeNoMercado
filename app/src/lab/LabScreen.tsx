@@ -143,7 +143,9 @@ export function LabScreen() {
   if (!run) {
     return (
       <YStack flex={1}>
-        <XStack p="$2" gap="$2" items="center" justify="space-between">
+        {/* Altura explícita: a medição do Yoga às vezes colapsava a barra
+            para 0 e a câmera (flex 1) tomava a tela inteira por cima dela. */}
+        <XStack height={60} px="$2" gap="$2" items="center" justify="space-between" bg="$color2">
           <Button size="$3" onPress={importFromGallery} disabled={busy}>
             Importar da galeria
           </Button>
