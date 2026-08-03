@@ -12,11 +12,14 @@ export const RE = {
   TIER: /A\s*PARTIR\s*DE\s*(\d{1,3})/,
   UNIT_SUFFIX: /\b(KG|UN|LT|L|ML|G|MT|M)\b/,
   MEASURE: /NESTA\s+EMBALAGEM\s+(\d+)\s*(KG|LT|L|MT|M|G|ML)\s*R?\$?\s*(\d+)[,.](\d{2})/,
-  STORE_CARD: /BAHAMAS\s*CRED/,
+  // "DAHAMAS" é confusão comum de OCR para "BAHAMAS".
+  STORE_CARD: /[BD]AHAMAS\s*CRED/,
   SAVINGS: /ECONOMIZE\s*R?\$?\s*(\d+)[,.](\d{2})/,
-  FROM: /\bDE\s*:?\s*R\$/,
-  TO: /\bPOR\s*:?\s*R\$/,
-  PER_UNIT: /A\s*UNIDADE/,
+  FROM: /\bDE\s*:?\s*R\s?\$/,
+  TO: /\bPOR\s*:?\s*R\s?\$/,
+  // Fuzzy: OCR lê "A UNIDADE" como "A IIUIDADE", "A LIMIDADE" etc. —
+  // qualquer palavra curta terminada em DADE após "A" conta como âncora.
+  PER_UNIT: /\bA\s*[A-Z]{1,6}DADE\b/,
   MEASURE_PRICE_LABEL: /PRE[CÇ]O\s*\/\s*(KG|L)/,
 } as const;
 

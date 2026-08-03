@@ -8,7 +8,7 @@
  * qualquer busca genérica por dinheiro.
  */
 import type { PriceTier, PricingPolicy } from '../../../domain/pricing';
-import { candidatesBelow, type PositionedText } from '../anchor';
+import { candidatesBelow, candidatesRightOf, type PositionedText } from '../anchor';
 import { moneyMatchToCents, RE } from '../patterns';
 import {
   extractDateIso,
@@ -25,21 +25,53 @@ function isCardTierText(text: string): boolean {
   return /A\s*PARTIR\s*DE\s*\d+\s*UNID/.test(text);
 }
 
+/** "DE R$" com as corrupções comuns do OCR ("DE BS", "DE RS", "DE B$"). */
+const BASE_FROM = /\bDE\s*(R\s?\$|B\$|[RB]S\b)/;
+/** Variante "COMPRANDO 1 R$ 6,49 A UNIDADE" vista em campo. */
+const BASE_COMPRANDO = /\bCOMPRANDO\s*1\b/;
+
+/**
+ * Dinheiro do preço base numa linha, cortando a parte de medida quando o OCR
+ * funde "DE R$ 19,98 A UNIDADE" com "NESTA EMBALAGEM 1KG R$ 55,50" na mesma
+ * linha — descartar a linha inteira jogaria fora o base junto.
+ */
+function basePriceFromText(text: string): number | null {
+  const prefix = text.split(/NESTA\s+EMBAL/)[0] ?? '';
+  if (prefix.trim().length === 0) return null;
+  return extractMoneyCents(prefix);
+}
+
 function extractBasePrice(items: PositionedText[]): {
   cents: number | null;
   anchor: PositionedText | null;
 } {
-  // Âncora "DE R$ ... A UNIDADE", nunca numa linha de medida.
+  // Âncoras candidatas: "DE R$", "A UNIDADE" (fuzzy) ou "COMPRANDO 1" —
+  // nunca uma linha de faixa ou do cartão.
   const candidates = items.filter(
-    (i) => /\bDE\s*R?\$/.test(i.text) && !isMeasureLine(i.text) && !RE.TIER.test(i.text),
+    (i) =>
+      (BASE_FROM.test(i.text) || RE.PER_UNIT.test(i.text) || BASE_COMPRANDO.test(i.text)) &&
+      !RE.TIER.test(i.text) &&
+      !RE.STORE_CARD.test(i.text),
   );
   // Preferir a linha que confirma "A UNIDADE" (validação da spec).
   const sorted = [...candidates].sort(
     (a, b) => Number(RE.PER_UNIT.test(b.text)) - Number(RE.PER_UNIT.test(a.text)),
   );
   for (const anchor of sorted) {
-    const cents = extractMoneyCents(anchor.text);
+    const cents = basePriceFromText(anchor.text);
     if (cents !== null) return { cents, anchor };
+  }
+  // Âncora sem valor na própria linha (OCR quebrou "DE R$" / "9,29 A UNIDADE"
+  // em linhas separadas): busca espacial à direita e abaixo.
+  for (const anchor of sorted) {
+    const near = [
+      ...candidatesRightOf(items, anchor.box, 0.6, 0.04),
+      ...candidatesBelow(items, anchor.box, 0.2),
+    ].filter((c) => !RE.TIER.test(c.text) && !RE.STORE_CARD.test(c.text));
+    for (const candidate of near) {
+      const cents = basePriceFromText(candidate.text);
+      if (cents !== null) return { cents, anchor };
+    }
   }
   return { cents: null, anchor: null };
 }

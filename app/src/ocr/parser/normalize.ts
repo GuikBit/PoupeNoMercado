@@ -48,6 +48,8 @@ export function normalizeText(raw: string): string {
   t = t.normalize('NFD').replace(/[̀-ͯ]/g, '');
   // Colapso de espaços múltiplos
   t = t.replace(/\s+/g, ' ').trim();
+  // Decimal com espaço espúrio do OCR: "8, 19" / "9 . 29" → "8,19" / "9,29".
+  t = t.replace(/(\d)\s*[,.]\s+(\d{2})\b/g, '$1,$2');
   // Variantes de OCR do símbolo monetário — "RS", "R5", "B$", "R $" — viram
   // "R$" quando seguidas de um valor com centavos. As âncoras DE/POR e o
   // padrão MONEY dependem do símbolo canônico.
