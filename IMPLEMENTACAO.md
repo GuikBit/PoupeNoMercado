@@ -45,12 +45,12 @@ ETAPA 8  Beta fechado                2 semanas  ┘
 - [x] Instalar Tamagui e configurar tema base
 - [x] Instalar Expo Router; estrutura de rotas mínima
 - [x] `npx expo prebuild` — gera `android/` (não versionado — CNG)
-- [ ] `npx expo run:android` em device físico — **ponto de verificação**
+- [x] `npx expo run:android` em device físico — **ponto de verificação** (Galaxy S24 Ultra, 03/08/2026)
 
 ### Câmera
 - [x] `react-native-vision-camera` v4 + permissões no `app.json`
-- [ ] Tela de preview funcionando (código pronto em `src/app/scan.tsx`; validar no device)
-- [ ] Captura de foto salvando em `FileSystem.documentDirectory` (idem)
+- [x] Tela de preview funcionando (`src/app/scan.tsx`)
+- [x] Captura de foto salvando em `FileSystem.documentDirectory/captures/`
 
 ### Qualidade
 - [x] Jest + `ts-jest` configurados

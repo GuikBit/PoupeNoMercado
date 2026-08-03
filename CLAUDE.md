@@ -42,10 +42,19 @@ sempre que a quantidade muda.
 
 | | |
 |---|---|
-| **Fase** | Fase 0 — Etapa 0 (fundação) concluída, exceto validação em device físico |
-| **Próximo passo** | Validar câmera em device · Etapa 1 do `IMPLEMENTACAO.md` (Laboratório de Etiquetas) |
-| **Código escrito** | App base (Expo SDK 57, Router, Tamagui, VisionCamera v4, Jest, CI) |
+| **Fase** | Fase 0 — Etapa 0 ✅ concluída e validada em device (Galaxy S24 Ultra) |
+| **Próximo passo** | Etapa 1: adaptador ML Kit, detector de etiqueta, tela do Laboratório |
+| **Código escrito** | App base (Expo SDK 57, Router, Tamagui, VisionCamera v4, Jest, CI) · parser v1 completo com T1–T14 · domínio de preço · adaptador Cloud Vision |
 | **Decisão pendente** | Qual motor de OCR usar (será decidida por medição, não no papel) |
+
+### ⚠️ Requisitos de ambiente Windows (aprendidos a caro preço)
+
+- O repositório DEVE morar em caminho **curto e sem espaços**: `C:\dev\PoupeNoMercado`.
+- O Android SDK DEVE morar em `C:\Android\Sdk` (`ANDROID_HOME` configurado).
+- Motivo: espaço no caminho força o CMake/AGP a usar caminhos 8.3 (`CLANG_~1.EXE`),
+  que com `-no-canonical-prefixes` quebra o link da libc++ em todo módulo nativo;
+  caminhos longos estouram o limite de 250 caracteres para objetos e disparam o
+  loop `ninja: manifest still dirty`.
 
 ---
 
