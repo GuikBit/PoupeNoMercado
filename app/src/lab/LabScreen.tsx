@@ -12,6 +12,7 @@ import type { ImageRef } from '../ocr/types';
 import { CaptureView } from './CaptureView';
 import { Choice } from './Choice';
 import { openLabDb } from './db';
+import { exportCases } from './export';
 import {
   draftToGroundTruth,
   EMPTY_DRAFT,
@@ -108,6 +109,19 @@ export function LabScreen() {
     }
   }
 
+  async function handleExport() {
+    setBusy(true);
+    setError(null);
+    try {
+      const uri = await exportCases(repo.list(), new Date().toISOString());
+      setError(`Export gravado em ${uri.replace(/^file:\/\//, '')}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function handleSave() {
     if (!run) return;
     try {
@@ -133,8 +147,11 @@ export function LabScreen() {
           <Button size="$3" onPress={importFromGallery} disabled={busy}>
             Importar da galeria
           </Button>
+          <Button size="$3" onPress={handleExport} disabled={busy || savedCount === 0}>
+            Exportar
+          </Button>
           <Paragraph size="$2" color="$color10">
-            {savedCount} casos salvos
+            {savedCount} casos
           </Paragraph>
         </XStack>
         <YStack flex={1}>

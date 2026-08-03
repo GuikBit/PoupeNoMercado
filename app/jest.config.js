@@ -9,6 +9,7 @@ module.exports = {
     '^expo-file-system$': '<rootDir>/src/test/mocks/expo-file-system.ts',
     '^expo-crypto$': '<rootDir>/src/test/mocks/expo-crypto.ts',
     '^expo-image-manipulator$': '<rootDir>/src/test/mocks/expo-image-manipulator.ts',
+    '^expo-sharing$': '<rootDir>/src/test/mocks/expo-sharing.ts',
     '^expo-sqlite$': '<rootDir>/src/test/mocks/expo-sqlite.ts',
     '^react-native-fast-opencv$': '<rootDir>/src/test/mocks/react-native-fast-opencv.ts',
     'modules/mlkit-text-recognition$': '<rootDir>/src/test/mocks/mlkit-text-recognition.ts',
