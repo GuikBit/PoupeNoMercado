@@ -42,10 +42,23 @@ sempre que a quantidade muda.
 
 | | |
 |---|---|
-| **Fase** | Fase 0 — Etapa 0 ✅ concluída e validada em device (Galaxy S24 Ultra) |
-| **Próximo passo** | Etapa 1: adaptador ML Kit, detector de etiqueta, tela do Laboratório |
-| **Código escrito** | App base (Expo SDK 57, Router, Tamagui, VisionCamera v4, Jest, CI) · parser v1 completo com T1–T14 · domínio de preço · adaptador Cloud Vision |
+| **Fase** | Fase 0 — Etapa 0 ✅ · Etapa 1 código completo (falta validar o Laboratório em device) |
+| **Próximo passo** | Validar o Lab em device (etiqueta em casa + 13 fotos de `Etiquetas/`) → Etapa 2: coleta e decisão |
+| **Código escrito** | App base (Expo SDK 57, Router, Tamagui, VisionCamera v4, Jest, CI) · parser v1 completo com T1–T14 · domínio de preço · adaptadores ML Kit (módulo local) e Cloud Vision · detector OpenCV · tela do Laboratório com SQLite e export |
 | **Decisão pendente** | Qual motor de OCR usar (será decidida por medição, não no papel) |
+
+### Notas da Etapa 1
+
+- **ML Kit** roda via **módulo Expo local próprio** em `app/modules/mlkit-text-recognition`
+  (Kotlin, `com.google.mlkit:text-recognition:16.0.1` bundled, confiança por linha).
+  Autolinking do SDK 57 descobre `modules/` sozinho; a dependência Gradle vive no
+  `build.gradle` do módulo — nunca edite o `android/` gerado (CNG).
+- **`react-native-fast-opencv` está pinado em 1.0.1 exato** (V1 = New Arch only,
+  API nova; `clearBuffers()` não existe mais — objetos têm GC, use `release()`).
+- Módulos nativos são mockados no Jest via `moduleNameMapper` → `src/test/mocks/`
+  (padrão: stub que lança alto; testes injetam `recognizeFn`/`detectFn`/fake `LabDb`).
+- Export do Lab: `Paths.document/exports/lab-<data>/` no formato de fixtures de
+  docs/02 §9; imagens em massa saem por `adb pull`.
 
 ### ⚠️ Requisitos de ambiente Windows (aprendidos a caro preço)
 

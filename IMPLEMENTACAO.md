@@ -70,18 +70,20 @@ salva no disco.
 
 ### 1.1 Interface de OCR
 - [x] `src/ocr/types.ts` — `OcrEngine`, `OcrBlock`, `OcrResult`, `BoundingBox`
-- [ ] `src/ocr/engines/mlkit.ts` — adaptador, normalizando confiança para 0..1
-- [ ] `src/ocr/engines/cloudvision.ts` — REST, chave via `.env`, timeout 5 s
-- [ ] `src/ocr/engines/registry.ts` — registro e seleção
-- [ ] Teste: cada adaptador devolve `OcrResult` bem-formado
+- [x] `src/ocr/engines/mlkit.ts` — adaptador sobre módulo Expo local próprio
+      (`app/modules/mlkit-text-recognition`, Kotlin, ML Kit bundled 16.0.1,
+      confiança por linha), normalizando para 0..1 (−1 = não informada)
+- [x] `src/ocr/engines/cloudvision.ts` — REST, chave via `.env`, timeout 5 s
+- [x] `src/ocr/engines/registry.ts` — registro e seleção + `bootstrap.ts`
+- [x] Teste: cada adaptador devolve `OcrResult` bem-formado
 
 ### 1.2 Detector de etiqueta
-- [ ] `react-native-fast-opencv` instalado
-- [ ] `src/ocr/detector/detect.ts`: HSV → threshold amarelo → contornos →
-      maior quadrilátero → `warpPerspective`
-- [ ] Fallback: sem quadrilátero confiável, usa o recorte do guia visual
-- [ ] Guia visual (retículo) sobreposto na câmera
-- [ ] Teste com as 13 fotos de `Etiquetas/`
+- [x] `react-native-fast-opencv` instalado (**1.0.1, pin exato** — V1/New Arch)
+- [x] `src/ocr/detector/detect.ts`: HSV → threshold amarelo → contornos →
+      maior quadrilátero → `warpPerspective` (geometria pura em `geometry.ts`)
+- [x] Fallback: sem quadrilátero confiável, usa o recorte do guia visual
+- [x] Guia visual (retículo) sobreposto na câmera (`src/lab/CaptureView.tsx`)
+- [ ] Teste com as 13 fotos de `Etiquetas/` (manual, em device, via modo importar)
 
 ### 1.3 Parser v1
 > Especificação em `docs/02-MOTOR-RECONHECIMENTO.md` §6. **Siga-a literalmente.**
@@ -105,13 +107,15 @@ salva no disco.
 - [x] Testes: Vinagre em qty 1/2/3/23/24 · com e sem cartão · KG com peso fracionário
 
 ### 1.5 Tela do Laboratório
-- [ ] Alternador câmera ao vivo / importar da galeria
-- [ ] Um bitmap → todos os motores em paralelo (`Promise.allSettled`)
-- [ ] Colunas comparativas com resultado, confiança e latência
-- [ ] Campo de gabarito, editável
-- [ ] Veredito humano: radio + observação
-- [ ] Persistência em SQLite local
-- [ ] Exportação: JSON + pasta de imagens via `expo-sharing`
+- [x] Alternador câmera ao vivo / importar da galeria (`expo-image-picker`)
+- [x] Um bitmap → todos os motores em paralelo (`Promise.allSettled`)
+- [x] Colunas comparativas com resultado, confiança e latência
+- [x] Campo de gabarito, editável (pré-preenchido pela 1ª leitura válida)
+- [x] Veredito humano: radio + observação
+- [x] Persistência em SQLite local (`expo-sqlite` puro; Drizzle só na Etapa 5)
+- [x] Exportação: árvore de fixtures (docs/02 §9) + `expo-sharing` do índice;
+      imagens em massa via `adb pull`
+- [ ] **Validação em device** — critério de conclusão abaixo
 
 **✅ Concluída quando:** você aponta para uma etiqueta em casa, vê os dois
 resultados lado a lado, preenche o gabarito e o caso é salvo.
