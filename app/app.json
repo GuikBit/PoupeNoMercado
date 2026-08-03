@@ -31,7 +31,9 @@
         {
           "cameraPermissionText": "O Poupe no Mercado usa a câmera para ler etiquetas de preço."
         }
-      ]
+      ],
+      "expo-sqlite",
+      "expo-sharing"
     ]
   }
 }
