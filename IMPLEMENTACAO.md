@@ -34,28 +34,28 @@ ETAPA 8  Beta fechado                2 semanas  ┘
 **Entregável:** repositório estruturado, app rodando em device físico com câmera.
 
 ### Repositório
-- [ ] `git init`, `.gitignore` (Node, Go, Expo, `.env`)
-- [ ] Criar `app/`, `api/`, `infra/`, `docs/resultados/`
-- [ ] README com link para `CLAUDE.md`
+- [x] `git init`, `.gitignore` (Node, Go, Expo, `.env`)
+- [x] Criar `app/`, `api/`, `infra/`, `docs/resultados/`
+- [x] README com link para `CLAUDE.md`
 
 ### App base
-- [ ] `npx create-expo-app app --template blank-typescript`
-- [ ] `tsconfig.json` com `strict: true`, `noUncheckedIndexedAccess: true`
-- [ ] ESLint + Prettier + `simple-import-sort`
-- [ ] Instalar Tamagui e configurar tema base
-- [ ] Instalar Expo Router; estrutura de rotas mínima
-- [ ] `npx expo prebuild` — gera `android/` (necessário para ML Kit)
+- [x] `npx create-expo-app app --template blank-typescript` (SDK 57)
+- [x] `tsconfig.json` com `strict: true`, `noUncheckedIndexedAccess: true`
+- [x] ESLint + Prettier + `simple-import-sort`
+- [x] Instalar Tamagui e configurar tema base
+- [x] Instalar Expo Router; estrutura de rotas mínima
+- [x] `npx expo prebuild` — gera `android/` (não versionado — CNG)
 - [ ] `npx expo run:android` em device físico — **ponto de verificação**
 
 ### Câmera
-- [ ] `react-native-vision-camera` v4 + permissões no `app.json`
-- [ ] Tela de preview funcionando
-- [ ] Captura de foto salvando em `FileSystem.documentDirectory`
+- [x] `react-native-vision-camera` v4 + permissões no `app.json`
+- [ ] Tela de preview funcionando (código pronto em `src/app/scan.tsx`; validar no device)
+- [ ] Captura de foto salvando em `FileSystem.documentDirectory` (idem)
 
 ### Qualidade
-- [ ] Jest + `ts-jest` configurados
-- [ ] GitHub Actions: `typecheck` + `lint` + `test`
-- [ ] Primeiro commit com Conventional Commits
+- [x] Jest + `ts-jest` configurados
+- [x] GitHub Actions: `typecheck` + `lint` + `test`
+- [x] Primeiro commit com Conventional Commits
 
 **✅ Concluída quando:** o app abre no celular, mostra a câmera, tira foto e
 salva no disco.

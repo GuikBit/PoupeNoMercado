@@ -42,9 +42,9 @@ sempre que a quantidade muda.
 
 | | |
 |---|---|
-| **Fase** | Pré-desenvolvimento — documentação concluída |
-| **Próximo passo** | Etapa 0 e 1 do `IMPLEMENTACAO.md` (Laboratório de Etiquetas) |
-| **Código escrito** | Nenhum ainda |
+| **Fase** | Fase 0 — Etapa 0 (fundação) concluída, exceto validação em device físico |
+| **Próximo passo** | Validar câmera em device · Etapa 1 do `IMPLEMENTACAO.md` (Laboratório de Etiquetas) |
+| **Código escrito** | App base (Expo SDK 57, Router, Tamagui, VisionCamera v4, Jest, CI) |
 | **Decisão pendente** | Qual motor de OCR usar (será decidida por medição, não no papel) |
 
 ---
@@ -167,18 +167,20 @@ Erros que já foram identificados na análise e devem ser evitados:
 
 ## Comandos
 
-> Ainda não implementados — serão criados na Etapa 0. Mantenha esta seção
-> atualizada conforme o projeto evolui.
+> Mantenha esta seção atualizada conforme o projeto evolui.
+> Backend (`api/`) ainda não implementado — comandos entram na Etapa 6.
 
 ```bash
-# App
+# App (funcionais desde a Etapa 0)
 cd app && npm install
-npx expo prebuild            # gera android/ e ios/ (necessário p/ ML Kit)
-npx expo run:android         # build + instala no device
+npx expo prebuild --platform android   # gera android/ (não versionado — CNG)
+npm run android              # build + instala no device (expo run:android)
 npm run typecheck
+npm run lint
+npm run format
 npm run test
 
-# Backend
+# Backend (a partir da Etapa 6)
 cd api && go mod download
 make dev                     # sobe api + postgres via compose
 make migrate-up
