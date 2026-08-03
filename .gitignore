@@ -1,0 +1,53 @@
+# ── Node / Expo (app/) ────────────────────────────────────
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Builds nativos gerados por prebuild — regeráveis, mas versionamos
+# android/ e ios/ só se houver customização manual (por ora, ignorados
+# apenas os artefatos de build internos)
+app/android/app/build/
+app/android/build/
+app/android/.gradle/
+app/android/local.properties
+app/ios/build/
+app/ios/Pods/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# ── Go (api/) ─────────────────────────────────────────────
+api/bin/
+api/tmp/
+*.exe
+*.test
+*.out
+coverage.html
+
+# ── Ambiente / segredos ───────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Editores / SO ─────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ── Testes / cobertura ────────────────────────────────────
+coverage/
+
+# ── Logs ──────────────────────────────────────────────────
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
