@@ -69,7 +69,7 @@ salva no disco.
 > Especificação completa em `docs/06-PLANO-VALIDACAO.md` §3.
 
 ### 1.1 Interface de OCR
-- [ ] `src/ocr/types.ts` — `OcrEngine`, `OcrBlock`, `OcrResult`, `BoundingBox`
+- [x] `src/ocr/types.ts` — `OcrEngine`, `OcrBlock`, `OcrResult`, `BoundingBox`
 - [ ] `src/ocr/engines/mlkit.ts` — adaptador, normalizando confiança para 0..1
 - [ ] `src/ocr/engines/cloudvision.ts` — REST, chave via `.env`, timeout 5 s
 - [ ] `src/ocr/engines/registry.ts` — registro e seleção
@@ -86,23 +86,23 @@ salva no disco.
 ### 1.3 Parser v1
 > Especificação em `docs/02-MOTOR-RECONHECIMENTO.md` §6. **Siga-a literalmente.**
 
-- [ ] `src/ocr/parser/normalize.ts` — normalização de texto (§6.1)
-- [ ] `src/ocr/parser/patterns.ts` — objeto `RE` (§6.3)
-- [ ] `src/ocr/parser/anchor.ts` — busca espacial por âncora (§6.2)
-- [ ] `src/ocr/parser/classify.ts` — classificador de layout (§6.4)
-- [ ] `src/ocr/parser/profiles/bahamas-gondola.ts` — **Tipo B, comece por ele**
-- [ ] `src/ocr/parser/profiles/bahamas-perecivel.ts` — Tipo C
-- [ ] `src/ocr/parser/profiles/bahamas-oferta.ts` — Tipo A
-- [ ] `src/ocr/parser/profiles/bahamas-cartaz.ts` — Tipo D
-- [ ] `src/ocr/parser/profiles/generic.ts` — fallback, confiança limitada a 0,55
-- [ ] `src/ocr/parser/validate.ts` — regras V1–V10 (§7.1)
-- [ ] `src/ocr/confidence/score.ts` — score por `min()` (§7.2)
-- [ ] **Testes T1–T14** de `docs/02-MOTOR-RECONHECIMENTO.md` §10
+- [x] `src/ocr/parser/normalize.ts` — normalização de texto (§6.1)
+- [x] `src/ocr/parser/patterns.ts` — objeto `RE` (§6.3)
+- [x] `src/ocr/parser/anchor.ts` — busca espacial por âncora (§6.2)
+- [x] `src/ocr/parser/classify.ts` — classificador de layout (§6.4)
+- [x] `src/ocr/parser/profiles/bahamas-gondola.ts` — **Tipo B, comece por ele**
+- [x] `src/ocr/parser/profiles/bahamas-perecivel.ts` — Tipo C
+- [x] `src/ocr/parser/profiles/bahamas-oferta.ts` — Tipo A
+- [x] `src/ocr/parser/profiles/bahamas-cartaz.ts` — Tipo D (em `bahamas-oferta.ts`, estrutura DE/POR compartilhada)
+- [x] `src/ocr/parser/profiles/generic.ts` — fallback, confiança limitada a 0,55
+- [x] `src/ocr/parser/validate.ts` — regras V1–V10 (§7.1)
+- [x] `src/ocr/confidence/score.ts` — score por `min()` (§7.2)
+- [x] **Testes T1–T14** de `docs/02-MOTOR-RECONHECIMENTO.md` §10 (fixtures sintéticas; refazer com OCR bruto real na Etapa 2)
 
 ### 1.4 Domínio de preço
-- [ ] `src/domain/pricing.ts` — tipos `PricingPolicy`, `PriceTier`, `SaleUnit`
-- [ ] `resolvePrice(policy, qty, useStoreCard)` (§5)
-- [ ] Testes: Vinagre em qty 1/2/3/23/24 · com e sem cartão · KG com peso fracionário
+- [x] `src/domain/pricing.ts` — tipos `PricingPolicy`, `PriceTier`, `SaleUnit`
+- [x] `resolvePrice(policy, qty, useStoreCard)` (§5)
+- [x] Testes: Vinagre em qty 1/2/3/23/24 · com e sem cartão · KG com peso fracionário
 
 ### 1.5 Tela do Laboratório
 - [ ] Alternador câmera ao vivo / importar da galeria
