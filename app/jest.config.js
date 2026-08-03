@@ -7,5 +7,6 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^expo-file-system$': '<rootDir>/src/test/mocks/expo-file-system.ts',
+    'modules/mlkit-text-recognition$': '<rootDir>/src/test/mocks/mlkit-text-recognition.ts',
   },
 };
