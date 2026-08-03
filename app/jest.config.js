@@ -6,5 +6,6 @@ module.exports = {
   testMatch: ['**/*.test.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^expo-file-system$': '<rootDir>/src/test/mocks/expo-file-system.ts',
   },
 };
