@@ -92,6 +92,7 @@ export function buildExportBundle(cases: LabCase[]): ExportBundle {
         content: {
           engine_id: engineId,
           latency_ms: run.latencyMs,
+          image_size: run.imageSize ?? null,
           ...(run.error ? { error: run.error } : {}),
           blocks: run.ocrRaw,
         },

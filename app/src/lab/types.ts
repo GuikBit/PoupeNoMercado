@@ -29,6 +29,8 @@ export interface CaptureConditions {
 /** Resultado de UM motor sobre o bitmap único do caso. */
 export interface EngineRun {
   latencyMs: number;
+  /** Tamanho da imagem retificada — necessário para reprocessar o ocrRaw. */
+  imageSize?: { width: number; height: number };
   ocrRaw: OcrBlock[];
   parsed: LabelReading | null;
   /** Score final 0..1, ou null quando o parser rejeitou/motor falhou. */

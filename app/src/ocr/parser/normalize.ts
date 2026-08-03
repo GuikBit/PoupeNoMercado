@@ -48,6 +48,10 @@ export function normalizeText(raw: string): string {
   t = t.normalize('NFD').replace(/[̀-ͯ]/g, '');
   // Colapso de espaços múltiplos
   t = t.replace(/\s+/g, ' ').trim();
+  // Variantes de OCR do símbolo monetário — "RS", "R5", "B$", "R $" — viram
+  // "R$" quando seguidas de um valor com centavos. As âncoras DE/POR e o
+  // padrão MONEY dependem do símbolo canônico.
+  t = t.replace(/\b[RB]\s?[$S5§]\s*(?=\d{1,4}[,.]\d{2}\b)/g, 'R$ ');
   // Correções de confusão do OCR, por token, apenas em contexto numérico
   t = t
     .split(' ')

@@ -58,6 +58,7 @@ export async function runLabPipeline(
     const parsed = parseLabel(result.value, { dominantHue: detect.dominantHue, capturedAt });
     runs[engine.id] = {
       latencyMs: result.value.latencyMs,
+      imageSize: result.value.imageSize,
       ocrRaw: result.value.blocks,
       parsed,
       confidence: parsed ? parsed.confidence.score : null,

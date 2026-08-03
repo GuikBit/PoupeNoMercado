@@ -55,8 +55,16 @@ function extractTiers(
     if (isCardTierText(item.text) || RE.STORE_CARD.test(item.text)) continue;
 
     const minQty = Number(m[1]);
-    // Preço da faixa: primeiro dinheiro ABAIXO da âncora, dentro de 0.25 da
-    // altura da imagem, ignorando linhas de medida.
+    // O OCR às vezes junta faixa e preço na mesma linha ("A PARTIR DE 3 R$ 19,68").
+    // MONEY exige centavos, então o "3" da quantidade nunca é confundido com preço.
+    const sameLine = extractMoneyCents(item.text);
+    if (sameLine !== null) {
+      tiers.push({ minQty, priceCents: sameLine, condition: { kind: 'none' } });
+      used.push(item);
+      continue;
+    }
+    // Senão: primeiro dinheiro ABAIXO da âncora, dentro de 0.25 da altura da
+    // imagem, ignorando linhas de medida.
     const below = candidatesBelow(items, item.box, 0.25).filter((c) => !isMeasureLine(c.text));
     for (const candidate of below) {
       const cents = extractMoneyCents(candidate.text);
