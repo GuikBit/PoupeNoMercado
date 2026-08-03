@@ -141,11 +141,25 @@ export function LabScreen() {
   }
 
   if (!run) {
+    // A câmera ocupa a tela toda e a barra FLUTUA por cima (como o retículo):
+    // o layout em fluxo colapsava de forma não-determinística no release
+    // (Tamagui + New Arch) e a câmera cobria a barra.
     return (
       <YStack flex={1}>
-        {/* Altura explícita: a medição do Yoga às vezes colapsava a barra
-            para 0 e a câmera (flex 1) tomava a tela inteira por cima dela. */}
-        <XStack height={60} px="$2" gap="$2" items="center" justify="space-between" bg="$color2">
+        <CaptureView onPhoto={process} onError={setError} disabled={busy} />
+        <XStack
+          position="absolute"
+          t={0}
+          l={0}
+          r={0}
+          height={60}
+          px="$2"
+          gap="$2"
+          items="center"
+          justify="space-between"
+          bg="rgba(255,255,255,0.92)"
+          z={10}
+        >
           <Button size="$3" onPress={importFromGallery} disabled={busy}>
             Importar da galeria
           </Button>
@@ -156,26 +170,34 @@ export function LabScreen() {
             {savedCount} casos
           </Paragraph>
         </XStack>
-        <YStack flex={1}>
-          <CaptureView onPhoto={process} onError={setError} disabled={busy} />
-          {busy ? (
-            <YStack
-              position="absolute"
-              t={0}
-              b={0}
-              l={0}
-              r={0}
-              items="center"
-              justify="center"
-              bg="rgba(0,0,0,0.5)"
-            >
-              <Spinner size="large" color="$color1" />
-              <Paragraph color="white">Rodando motores…</Paragraph>
-            </YStack>
-          ) : null}
-        </YStack>
+        {busy ? (
+          <YStack
+            position="absolute"
+            t={0}
+            b={0}
+            l={0}
+            r={0}
+            items="center"
+            justify="center"
+            bg="rgba(0,0,0,0.5)"
+            z={20}
+          >
+            <Spinner size="large" color="$color1" />
+            <Paragraph color="white">Rodando motores…</Paragraph>
+          </YStack>
+        ) : null}
         {error ? (
-          <Paragraph p="$2" size="$2" color="$red10">
+          <Paragraph
+            position="absolute"
+            b={0}
+            l={0}
+            r={0}
+            p="$2"
+            size="$2"
+            color="$red10"
+            bg="rgba(255,255,255,0.92)"
+            z={10}
+          >
             {error}
           </Paragraph>
         ) : null}
