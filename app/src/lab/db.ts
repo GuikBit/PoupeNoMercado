@@ -35,18 +35,19 @@ export function migrate(db: LabDb): void {
   db.execSync(CREATE_LAB_CASE_TABLE);
 }
 
-let singleton: LabDb | null = null;
-
 /**
- * Abre (e migra) o banco do Laboratório — UMA vez por processo.
- * Reabrir a cada mount da tela dispara NullPointerException no Android:
- * o handle antigo é finalizado enquanto o novo usa a mesma conexão.
+ * Cache em globalThis, não em variável de módulo: o Fast Refresh reavalia o
+ * módulo (perdendo o singleton) e reabrir o banco sobre um handle nativo já
+ * finalizado dispara NullPointerException no NativeDatabase.execSync.
  */
+const globalCache = globalThis as { __poupeLabDb?: LabDb };
+
+/** Abre (e migra) o banco do Laboratório — UMA vez por processo, de verdade. */
 export function openLabDb(): LabDb {
-  if (!singleton) {
+  if (!globalCache.__poupeLabDb) {
     const db = openDatabaseSync('lab.db');
     migrate(db);
-    singleton = db;
+    globalCache.__poupeLabDb = db;
   }
-  return singleton;
+  return globalCache.__poupeLabDb;
 }
