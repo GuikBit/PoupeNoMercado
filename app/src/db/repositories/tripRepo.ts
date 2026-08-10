@@ -1,0 +1,264 @@
+/**
+ * Compra ativa (carrinho) e seus itens.
+ *
+ * ⚠️ Ponto delicado: `unit_price_cents` e `total_cents` do item são **snapshot
+ * derivado**, nunca autoridade. A autoridade é `pricing_policy` + `qty` + o
+ * `use_store_card` da compra. Toda mudança de quantidade re-resolve pelo
+ * domínio (`resolvePrice`), porque mudar a quantidade muda a FAIXA e portanto
+ * reprecifica todas as unidades daquele item (princípio nº 2).
+ *
+ * O total da compra é desnormalizado (docs/03 §3) e recalculado dentro da
+ * mesma transação de qualquer mutação de item — nunca fica velho.
+ */
+import { and, asc, eq, isNull } from 'drizzle-orm';
+
+import { normalizeProductName } from '../../domain/matching';
+import { itemTotalCents, type PricingPolicy, resolvePrice, type SaleUnit } from '../../domain/pricing';
+import { type AppDb, type AppTx, mutate, type RepoContext } from '../outbox';
+import {
+  type EntryMode,
+  shoppingTrip,
+  type ShoppingTripRow,
+  tripItem,
+  type TripItemRow,
+} from '../schema';
+
+export interface StartTripInput {
+  listId?: string | null;
+  storeName?: string | null;
+  budgetCents?: number | null;
+  useStoreCard?: boolean;
+}
+
+export function startTrip(ctx: RepoContext, input: StartTripInput = {}): ShoppingTripRow {
+  const id = ctx.newId();
+  return mutate(ctx, 'shopping_trip', 'upsert', (tx, now) => {
+    const row: ShoppingTripRow = {
+      id,
+      listId: input.listId ?? null,
+      storeId: null,
+      storeName: input.storeName ?? null,
+      budgetCents: input.budgetCents ?? null,
+      status: 'active',
+      useStoreCard: input.useStoreCard ? 1 : 0,
+      startedAt: now,
+      finishedAt: null,
+      totalCents: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deviceId: ctx.deviceId,
+    };
+    tx.insert(shoppingTrip).values(row).run();
+    return { id, row };
+  });
+}
+
+export function activeTrip(db: AppDb): ShoppingTripRow | null {
+  return (
+    db
+      .select()
+      .from(shoppingTrip)
+      .where(and(eq(shoppingTrip.status, 'active'), isNull(shoppingTrip.deletedAt)))
+      .orderBy(asc(shoppingTrip.startedAt))
+      .get() ?? null
+  );
+}
+
+export function getTrip(db: AppDb, tripId: string): ShoppingTripRow | null {
+  return db.select().from(shoppingTrip).where(eq(shoppingTrip.id, tripId)).get() ?? null;
+}
+
+export function itemsOfTrip(db: AppDb, tripId: string): TripItemRow[] {
+  return db
+    .select()
+    .from(tripItem)
+    .where(and(eq(tripItem.tripId, tripId), isNull(tripItem.deletedAt)))
+    .orderBy(asc(tripItem.createdAt))
+    .all();
+}
+
+/** Soma os itens vivos e grava o total da compra. Roda dentro da transação. */
+function recalcTripTotal(tx: AppTx, tripId: string, now: number): number {
+  const items = tx
+    .select()
+    .from(tripItem)
+    .where(and(eq(tripItem.tripId, tripId), isNull(tripItem.deletedAt)))
+    .all();
+  const totalCents = items.reduce((sum, item) => sum + item.totalCents, 0);
+
+  tx.update(shoppingTrip)
+    .set({ totalCents, updatedAt: now })
+    .where(eq(shoppingTrip.id, tripId))
+    .run();
+  return totalCents;
+}
+
+function requireTrip(tx: AppTx, tripId: string): ShoppingTripRow {
+  const trip = tx.select().from(shoppingTrip).where(eq(shoppingTrip.id, tripId)).get();
+  if (!trip) throw new Error(`Compra não encontrada: ${tripId}`);
+  return trip;
+}
+
+/** Resolve preço e total a partir da política — a única fonte de verdade. */
+function priceSnapshot(
+  policy: PricingPolicy,
+  qty: number,
+  useStoreCard: boolean,
+): { unitPriceCents: number; totalCents: number } {
+  const resolution = resolvePrice(policy, qty, useStoreCard);
+  return {
+    unitPriceCents: resolution.unitPriceCents,
+    totalCents: itemTotalCents(resolution.unitPriceCents, policy.saleUnit, qty),
+  };
+}
+
+export interface AddTripItemInput {
+  rawName: string;
+  policy: PricingPolicy;
+  qty: number;
+  entryMode: EntryMode;
+  listItemId?: string | null;
+  internalCode?: string | null;
+  ean?: string | null;
+  confidence?: number | null;
+  readingId?: string | null;
+}
+
+export function addTripItem(
+  ctx: RepoContext,
+  tripId: string,
+  input: AddTripItemInput,
+): TripItemRow {
+  const id = ctx.newId();
+  return mutate(ctx, 'trip_item', 'upsert', (tx, now) => {
+    const trip = requireTrip(tx, tripId);
+    const snapshot = priceSnapshot(input.policy, input.qty, trip.useStoreCard === 1);
+
+    const row: TripItemRow = {
+      id,
+      tripId,
+      listItemId: input.listItemId ?? null,
+      productId: null,
+      rawName: input.rawName,
+      normalizedName: normalizeProductName(input.rawName),
+      internalCode: input.internalCode ?? null,
+      ean: input.ean ?? null,
+      pricingPolicy: JSON.stringify(input.policy),
+      qty: input.qty,
+      saleUnit: input.policy.saleUnit,
+      unitPriceCents: snapshot.unitPriceCents,
+      totalCents: snapshot.totalCents,
+      entryMode: input.entryMode,
+      confidence: input.confidence ?? null,
+      readingId: input.readingId ?? null,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deviceId: ctx.deviceId,
+    };
+    tx.insert(tripItem).values(row).run();
+    recalcTripTotal(tx, tripId, now);
+    return { id, row };
+  });
+}
+
+/**
+ * Troca a quantidade e RE-RESOLVE o preço. Nunca reaproveita o
+ * `unit_price_cents` guardado: ele é derivado, e a faixa pode ter mudado.
+ */
+export function setTripItemQty(ctx: RepoContext, itemId: string, qty: number): TripItemRow {
+  return mutate(ctx, 'trip_item', 'upsert', (tx, now) => {
+    const current = tx.select().from(tripItem).where(eq(tripItem.id, itemId)).get();
+    if (!current) throw new Error(`Item da compra não encontrado: ${itemId}`);
+    const trip = requireTrip(tx, current.tripId);
+
+    const policy = JSON.parse(current.pricingPolicy) as PricingPolicy;
+    const snapshot = priceSnapshot(policy, qty, trip.useStoreCard === 1);
+
+    const row: TripItemRow = {
+      ...current,
+      qty,
+      unitPriceCents: snapshot.unitPriceCents,
+      totalCents: snapshot.totalCents,
+      updatedAt: now,
+    };
+    tx.update(tripItem).set(row).where(eq(tripItem.id, itemId)).run();
+    recalcTripTotal(tx, current.tripId, now);
+    return { id: itemId, row };
+  });
+}
+
+export function removeTripItem(ctx: RepoContext, itemId: string): TripItemRow {
+  return mutate(ctx, 'trip_item', 'delete', (tx, now) => {
+    const current = tx.select().from(tripItem).where(eq(tripItem.id, itemId)).get();
+    if (!current) throw new Error(`Item da compra não encontrado: ${itemId}`);
+
+    const row: TripItemRow = { ...current, deletedAt: now, updatedAt: now };
+    tx.update(tripItem).set(row).where(eq(tripItem.id, itemId)).run();
+    recalcTripTotal(tx, current.tripId, now);
+    return { id: itemId, row };
+  });
+}
+
+/**
+ * Liga/desliga o cartão da loja e reprecifica a compra inteira — a condição
+ * vale para todos os itens, então todos re-resolvem.
+ */
+export function setUseStoreCard(
+  ctx: RepoContext,
+  tripId: string,
+  useStoreCard: boolean,
+): ShoppingTripRow {
+  return mutate(ctx, 'shopping_trip', 'upsert', (tx, now) => {
+    const trip = requireTrip(tx, tripId);
+    tx.update(shoppingTrip)
+      .set({ useStoreCard: useStoreCard ? 1 : 0, updatedAt: now })
+      .where(eq(shoppingTrip.id, tripId))
+      .run();
+
+    const items = tx
+      .select()
+      .from(tripItem)
+      .where(and(eq(tripItem.tripId, tripId), isNull(tripItem.deletedAt)))
+      .all();
+    for (const item of items) {
+      const policy = JSON.parse(item.pricingPolicy) as PricingPolicy;
+      const snapshot = priceSnapshot(policy, item.qty, useStoreCard);
+      tx.update(tripItem)
+        .set({ ...snapshot, updatedAt: now })
+        .where(eq(tripItem.id, item.id))
+        .run();
+    }
+
+    const totalCents = recalcTripTotal(tx, tripId, now);
+    const row: ShoppingTripRow = {
+      ...trip,
+      useStoreCard: useStoreCard ? 1 : 0,
+      totalCents,
+      updatedAt: now,
+    };
+    return { id: tripId, row };
+  });
+}
+
+export function finishTrip(ctx: RepoContext, tripId: string): ShoppingTripRow {
+  return mutate(ctx, 'shopping_trip', 'upsert', (tx, now) => {
+    const trip = requireTrip(tx, tripId);
+    const row: ShoppingTripRow = {
+      ...trip,
+      status: 'finished',
+      finishedAt: now,
+      updatedAt: now,
+    };
+    tx.update(shoppingTrip).set(row).where(eq(shoppingTrip.id, tripId)).run();
+    return { id: tripId, row };
+  });
+}
+
+/** Política guardada do item — para a UI mostrar faixas e dicas. */
+export function policyOf(item: TripItemRow): PricingPolicy {
+  return JSON.parse(item.pricingPolicy) as PricingPolicy;
+}
+
+export type { SaleUnit };

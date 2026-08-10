@@ -228,11 +228,34 @@ sem abrir o app. — ✅ `cart.test.ts` faz exatamente isso no último bloco.
 
 **Entregável:** aplicativo completo e funcional offline.
 
-### 5.1 Persistência
-- [ ] Drizzle + `expo-sqlite`; schema de `docs/03-MODELO-DADOS.md` §3
-- [ ] Migrations rodando no boot
-- [ ] Repositórios: `listRepo`, `tripRepo`, `readingRepo`
-- [ ] Tabela `outbox` com enfileiramento automático em cada mutação
+### 5.1 Persistência ✅
+- [x] Drizzle + `expo-sqlite`; schema de `docs/03-MODELO-DADOS.md` §3
+      (9 tabelas, `src/db/schema.ts`)
+- [x] Migrations rodando no boot (`PRAGMA user_version`, idempotentes)
+- [x] Repositórios: `listRepo`, `tripRepo`, `readingRepo`
+- [x] Tabela `outbox` com enfileiramento automático em cada mutação
+- [x] UUID v7 próprio (`src/db/uuid.ts`) — o `randomUUID` do expo-crypto é v4 e
+      o CLAUDE.md exige v7 em tabela sincronizável
+- [x] 40 testes com **SQL real em memória** (`better-sqlite3`), não mock
+
+> **Duas decisões que valem saber.**
+>
+> **O enfileiramento é atômico.** Toda mutação passa por `mutate()`, que abre a
+> transação, grava a entidade e enfileira no outbox *dentro dela*. Gravar e
+> enfileirar depois abriria uma janela em que uma queda do app deixa a mudança
+> local sem registro de sync — e o servidor nunca saberia dela. Há teste
+> provando que mutação que falha não deixa entrada órfã na fila.
+>
+> **O preço gravado em `trip_item` é snapshot derivado, nunca autoridade.** A
+> autoridade é `pricing_policy` + `qty` + `use_store_card`. Mudar a quantidade
+> re-resolve pelo domínio, porque mudar a quantidade muda a FAIXA e reprecifica
+> todas as unidades. Reaproveitar o `unit_price_cents` guardado pareceria
+> funcionar e daria total errado — é o mesmo erro que o carrinho da Etapa 4
+> evita, agora travado também na camada de dados.
+>
+> `label_reading` **não** passa pelo outbox: tem `uploaded_at` e caminho de
+> upload próprio (docs/03 §3). É telemetria de qualidade do OCR, best-effort —
+> misturar faria upload de imagem competir com a sincronização do carrinho.
 
 ### 5.2 Telas
 - [ ] Home: listas + botão "Iniciar compra"
