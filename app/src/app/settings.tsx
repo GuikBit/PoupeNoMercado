@@ -27,7 +27,7 @@ interface LinhaProps {
 
 function Linha({ titulo, descricao, ligado, onToggle, alerta }: LinhaProps) {
   return (
-    <YStack gap="$1" p="$3" bg={alerta && ligado ? '$yellow2' : '$color2'} rounded="$4">
+    <YStack gap="$1" p="$3" bg={alerta && ligado ? '$yellow2' : '$color2'} rounded="$6">
       <XStack items="center" justify="space-between" gap="$2">
         <Paragraph flex={1} size="$4" fontWeight="700">
           {titulo}
@@ -92,7 +92,7 @@ export default function SettingsScreen() {
       />
 
       <Separator />
-      <YStack gap="$1" p="$3" bg="$color2" rounded="$4">
+      <YStack gap="$1" p="$3" bg="$color2" rounded="$6">
         <Paragraph size="$4" fontWeight="700">
           Sobre
         </Paragraph>

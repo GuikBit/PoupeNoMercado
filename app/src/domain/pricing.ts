@@ -117,3 +117,26 @@ export function itemTotalCents(
   }
   return Math.round(unitPriceCents * quantity);
 }
+
+/**
+ * Preço unitário e total efetivos de um item — resolver a faixa e somar são
+ * uma coisa só, e o resultado precisa ser idêntico onde quer que apareça.
+ *
+ * Existe porque essa conta é a resposta à pergunta "quanto vou pagar por isto".
+ * A tela de confirmação mostra o número e o repositório o grava; quando cada
+ * uma fazia a sua conta, a confirmação chegou a anunciar o preço base numa
+ * quantidade que já tinha atingido a faixa — prometia caro e cobrava barato,
+ * mas seria igualmente fácil errar para o outro lado.
+ */
+export function priceSnapshot(
+  policy: PricingPolicy,
+  qty: number,
+  useStoreCard: boolean,
+): { unitPriceCents: number; totalCents: number; resolution: PriceResolution } {
+  const resolution = resolvePrice(policy, qty, useStoreCard);
+  return {
+    unitPriceCents: resolution.unitPriceCents,
+    totalCents: itemTotalCents(resolution.unitPriceCents, policy.saleUnit, qty),
+    resolution,
+  };
+}

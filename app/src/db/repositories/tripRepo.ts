@@ -13,7 +13,7 @@
 import { and, asc, desc, eq, isNull } from 'drizzle-orm';
 
 import { normalizeProductName } from '../../domain/matching';
-import { itemTotalCents, type PricingPolicy, resolvePrice, type SaleUnit } from '../../domain/pricing';
+import { priceSnapshot, type PricingPolicy, type SaleUnit } from '../../domain/pricing';
 import { type AppDb, type AppTx, mutate, type RepoContext } from '../outbox';
 import {
   type EntryMode,
@@ -158,19 +158,6 @@ function requireTrip(tx: AppTx, tripId: string): ShoppingTripRow {
   const trip = tx.select().from(shoppingTrip).where(eq(shoppingTrip.id, tripId)).get();
   if (!trip) throw new Error(`Compra não encontrada: ${tripId}`);
   return trip;
-}
-
-/** Resolve preço e total a partir da política — a única fonte de verdade. */
-function priceSnapshot(
-  policy: PricingPolicy,
-  qty: number,
-  useStoreCard: boolean,
-): { unitPriceCents: number; totalCents: number } {
-  const resolution = resolvePrice(policy, qty, useStoreCard);
-  return {
-    unitPriceCents: resolution.unitPriceCents,
-    totalCents: itemTotalCents(resolution.unitPriceCents, policy.saleUnit, qty),
-  };
 }
 
 export interface AddTripItemInput {

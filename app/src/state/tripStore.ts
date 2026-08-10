@@ -12,6 +12,7 @@
 import { create } from 'zustand';
 
 import type { RepoContext } from '../db/outbox';
+import { itemsOfList, setListItemChecked } from '../db/repositories/listRepo';
 import {
   abandonTrip,
   activeTrip,
@@ -26,17 +27,26 @@ import {
   startTrip,
   type StartTripInput,
 } from '../db/repositories/tripRepo';
-import type { ShoppingTripRow, TripItemRow } from '../db/schema';
+import type { ListItemRow, ShoppingTripRow, TripItemRow } from '../db/schema';
 import { type BudgetStatus,budgetStatus } from '../domain/budget';
 import type { PricingPolicy } from '../domain/pricing';
 import { itemTotalCents, resolvePrice } from '../domain/pricing';
+
+/**
+ * O que a faixa seguinte oferece — "leve mais 2 e cada sai por R$ 2,79".
+ * É o diferencial do produto reduzido ao que cabe num chip.
+ */
+export interface QuantityHint {
+  qtyNeeded: number;
+  savingsPerUnitCents: number;
+  newUnitPriceCents: number;
+}
 
 /** Uma linha da compra já resolvida para a tela. */
 export interface TripLine {
   row: TripItemRow;
   policy: PricingPolicy;
-  /** Faixa seguinte e o que ela economiza — "leve mais 2 e economize R$ 0,60". */
-  hint: { qtyNeeded: number; savingsPerUnitCents: number; newUnitPriceCents: number } | null;
+  hint: QuantityHint | null;
 }
 
 export interface TripState {
@@ -44,6 +54,11 @@ export interface TripState {
   trip: ShoppingTripRow | null;
   lines: TripLine[];
   budget: BudgetStatus;
+  /**
+   * Itens da lista ainda não marcados — o "falta pegar" da tela de compra.
+   * Vazio quando a compra não veio de uma lista.
+   */
+  pending: ListItemRow[];
   /** Último item adicionado — alimenta o botão de desfazer (5.3). */
   lastAddedId: string | null;
 
@@ -52,6 +67,7 @@ export interface TripState {
   /** Inicia uma compra, ou RETOMA a que já estiver aberta. Nunca cria duas. */
   start(input?: StartTripInput): ShoppingTripRow | null;
   abandon(): void;
+  checkPending(itemId: string): void;
   addItem(input: Parameters<typeof addTripItem>[2]): TripItemRow | null;
   setQty(itemId: string, qty: number): void;
   remove(itemId: string): void;
@@ -96,6 +112,7 @@ export const useTripStore = create<TripState>((set, get) => ({
   trip: null,
   lines: [],
   budget: EMPTY_BUDGET,
+  pending: [],
   lastAddedId: null,
 
   attach(ctx) {
@@ -108,7 +125,7 @@ export const useTripStore = create<TripState>((set, get) => ({
     if (!ctx) return;
     const trip = activeTrip(ctx.db);
     if (!trip) {
-      set({ trip: null, lines: [], budget: EMPTY_BUDGET });
+      set({ trip: null, lines: [], budget: EMPTY_BUDGET, pending: [] });
       return;
     }
     const rows = itemsOfTrip(ctx.db, trip.id);
@@ -117,7 +134,18 @@ export const useTripStore = create<TripState>((set, get) => ({
       trip,
       lines: rows.map((row) => lineFrom(row, useCard)),
       budget: budgetStatus(trip.totalCents, trip.budgetCents),
+      // Só há "falta pegar" quando a compra nasceu de uma lista.
+      pending: trip.listId
+        ? itemsOfList(ctx.db, trip.listId).filter((i) => i.checked === 0)
+        : [],
     });
+  },
+
+  /** Marca da lista sem escanear — para quem pegou o item e já sabe o preço. */
+  checkPending(itemId) {
+    const ctx = requireCtx(get().ctx);
+    setListItemChecked(ctx, itemId, true);
+    get().reload();
   },
 
   /**
@@ -200,6 +228,7 @@ export function resetTripStore(): void {
     trip: null,
     lines: [],
     budget: EMPTY_BUDGET,
+    pending: [],
     lastAddedId: null,
   });
 }

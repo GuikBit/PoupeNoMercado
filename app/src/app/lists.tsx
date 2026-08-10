@@ -1,24 +1,28 @@
 /**
  * Listas de compras: criar, abrir, editar, reordenar, marcar e definir o TETO.
  *
- * O teto de gasto pertence à lista (e não à compra): a compra iniciada a
- * partir dela herda o valor, então o mesmo teto vale toda vez que a lista é
- * usada, sem redigitar.
+ * O teto de gasto pertence à lista: a compra iniciada por ela herda o valor,
+ * então o mesmo teto vale toda vez que a lista é usada, sem redigitar.
+ *
+ * Agrupamento: **pendentes primeiro, comprados no fim**. Durante a compra o
+ * que importa é o que falta; ordem de cadastro só interessa na hora de montar
+ * a lista, e para isso existem as setas.
  *
  * ⚠️ Teclado: as ScrollViews usam `keyboardShouldPersistTaps="handled"`. Sem
  * isso, com o teclado aberto o primeiro toque em qualquer botão só fecha o
- * teclado e o botão não dispara — o usuário precisa tocar duas vezes e acha
- * que travou. Toda ação também fecha o teclado explicitamente.
+ * teclado e o botão não dispara — parece que travou.
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Keyboard } from 'react-native';
-import { Button, Input, Paragraph, ScrollView, Separator, XStack, YStack } from 'tamagui';
+import { Button, Input, Paragraph, ScrollView, XStack, YStack } from 'tamagui';
 
 import { appRepoContext } from '../db/client';
+import type { ListItemRow } from '../db/schema';
 import { useListStore } from '../state/listStore';
 import { useTripStore } from '../state/tripStore';
 import { NumericPad } from '../trip/NumericPad';
+import { Eyebrow, TABULAR } from '../ui/kit';
 import { formatCents } from '../ui/money';
 
 export default function ListsScreen() {
@@ -53,8 +57,8 @@ export default function ListsScreen() {
     }, [attach, attachTrip, ctx]),
   );
 
-  /** Fecha o teclado antes de agir — o toque já não é engolido, mas manter o
-      teclado aberto depois de confirmar esconde metade da tela. */
+  /** Fecha o teclado antes de agir — manter aberto depois de confirmar
+      esconde metade da tela. */
   function agir(acao: () => void) {
     Keyboard.dismiss();
     acao();
@@ -66,12 +70,15 @@ export default function ListsScreen() {
     const lista = lists.find((l) => l.id === editandoTeto.listId);
     return (
       <YStack flex={1} gap="$3" p="$4">
-        <Paragraph size="$5" fontWeight="700">
-          {`Teto de "${lista?.name ?? ''}"`}
-        </Paragraph>
-        <Paragraph size="$2" color="$color10">
-          Toda compra iniciada por esta lista já começa com este teto.
-        </Paragraph>
+        <YStack gap="$1">
+          <Eyebrow>Teto de gasto</Eyebrow>
+          <Paragraph size="$6" fontWeight="700">
+            {lista?.name ?? ''}
+          </Paragraph>
+          <Paragraph size="$2" color="$color10">
+            Toda compra iniciada por esta lista já começa com este teto.
+          </Paragraph>
+        </YStack>
         <NumericPad
           label="Teto de gasto"
           valueCents={editandoTeto.cents}
@@ -107,55 +114,129 @@ export default function ListsScreen() {
   }
 
   if (listaAberta) {
-    const pendentes = items.filter((i) => i.checked === 0).length;
+    const pendentes = items.filter((i) => i.checked === 0);
+    const comprados = items.filter((i) => i.checked === 1);
+    const progresso = items.length === 0 ? 0 : comprados.length / items.length;
+
+    const linha = (item: ListItemRow, index: number, total: number, comprado: boolean) => (
+      <XStack
+        key={item.id}
+        items="center"
+        gap="$2"
+        px="$3"
+        py="$2"
+        borderTopWidth={index === 0 ? 0 : 1}
+        borderColor="$color4"
+      >
+        <YStack
+          width={24}
+          height={24}
+          rounded="$10"
+          items="center"
+          justify="center"
+          borderWidth={2}
+          borderColor={comprado ? '$green10' : '$color8'}
+          bg={comprado ? '$green10' : 'transparent'}
+          onPress={() => agir(() => toggle(item.id, !comprado))}
+          pressStyle={{ opacity: 0.6 }}
+        >
+          {comprado ? (
+            <Paragraph size="$1" color="white" fontWeight="900">
+              ✓
+            </Paragraph>
+          ) : null}
+        </YStack>
+
+        <Paragraph
+          flex={1}
+          size="$4"
+          textDecorationLine={comprado ? 'line-through' : 'none'}
+          color={comprado ? '$color10' : undefined}
+          onPress={() => agir(() => toggle(item.id, !comprado))}
+        >
+          {item.name}
+        </Paragraph>
+
+        {comprado ? null : (
+          <>
+            <Button size="$2" chromeless disabled={index === 0} onPress={() => agir(() => move(item.id, -1))}>
+              ↑
+            </Button>
+            <Button
+              size="$2"
+              chromeless
+              disabled={index === total - 1}
+              onPress={() => agir(() => move(item.id, 1))}
+            >
+              ↓
+            </Button>
+          </>
+        )}
+        <Button size="$2" chromeless color="$color10" onPress={() => agir(() => removeItem(item.id))}>
+          ×
+        </Button>
+      </XStack>
+    );
+
     return (
       <YStack flex={1}>
         <ScrollView
           flex={1}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ p: '$3', gap: '$2', pb: 180 }}
+          contentContainerStyle={{ p: '$3', gap: '$4', pb: 180 }}
         >
-          <XStack items="center" justify="space-between">
-            <Paragraph size="$6" fontWeight="700">
-              {listaAberta.name}
-            </Paragraph>
-            <Button size="$2" onPress={() => agir(() => open(null))}>
-              Fechar
-            </Button>
-          </XStack>
+          <YStack gap="$3" p="$4" bg="$color2" rounded="$6">
+            <XStack items="flex-start" justify="space-between" gap="$2">
+              <YStack flex={1} gap="$1">
+                <Eyebrow>Lista</Eyebrow>
+                <Paragraph size="$7" fontWeight="800" lineHeight={28}>
+                  {listaAberta.name}
+                </Paragraph>
+              </YStack>
+              <Button size="$2" onPress={() => agir(() => open(null))}>
+                Fechar
+              </Button>
+            </XStack>
 
-          <XStack items="center" justify="space-between" p="$3" bg="$color2" rounded="$4">
-            <YStack flex={1}>
-              <Paragraph size="$2" color="$color10">
-                Teto de gasto
-              </Paragraph>
-              <Paragraph size="$6" fontWeight="900">
-                {listaAberta.budgetCents ? formatCents(listaAberta.budgetCents) : 'sem teto'}
-              </Paragraph>
-            </YStack>
-            <Button
-              size="$3"
-              onPress={() =>
-                agir(() =>
-                  setEditandoTeto({
-                    listId: listaAberta.id,
-                    cents: listaAberta.budgetCents ?? 0,
-                  }),
-                )
-              }
-            >
-              {listaAberta.budgetCents ? 'Alterar' : 'Definir'}
-            </Button>
-          </XStack>
+            <XStack items="center" justify="space-between" gap="$2">
+              <YStack>
+                <Eyebrow>Teto</Eyebrow>
+                <Paragraph size="$6" fontWeight="900" {...TABULAR}>
+                  {listaAberta.budgetCents ? formatCents(listaAberta.budgetCents) : 'sem teto'}
+                </Paragraph>
+              </YStack>
+              <Button
+                size="$3"
+                onPress={() =>
+                  agir(() =>
+                    setEditandoTeto({
+                      listId: listaAberta.id,
+                      cents: listaAberta.budgetCents ?? 0,
+                    }),
+                  )
+                }
+              >
+                {listaAberta.budgetCents ? 'Alterar' : 'Definir'}
+              </Button>
+            </XStack>
 
-          <Paragraph size="$2" color="$color10">
-            {`${pendentes} de ${items.length} pendentes`}
-          </Paragraph>
+            {items.length > 0 ? (
+              <YStack gap="$2">
+                <YStack height={6} bg="$color5" rounded="$10" overflow="hidden">
+                  <YStack height={6} width={`${progresso * 100}%`} bg="$green10" rounded="$10" />
+                </YStack>
+                <Paragraph size="$2" color="$color10" {...TABULAR}>
+                  {`${comprados.length} de ${items.length} no carrinho`}
+                </Paragraph>
+              </YStack>
+            ) : null}
+          </YStack>
 
           <XStack gap="$2">
             <Input
               flex={1}
-              placeholder="Adicionar item"
+              size="$4"
+              placeholder="O que falta comprar?"
               value={novoItem}
               onChangeText={setNovoItem}
               returnKeyType="done"
@@ -165,6 +246,8 @@ export default function ListsScreen() {
               }}
             />
             <Button
+              size="$4"
+              theme="accent"
               disabled={!novoItem.trim()}
               onPress={() =>
                 agir(() => {
@@ -173,55 +256,51 @@ export default function ListsScreen() {
                 })
               }
             >
-              +
+              Adicionar
             </Button>
           </XStack>
 
           {items.length === 0 ? (
-            <YStack items="center" p="$6">
-              <Paragraph color="$color10" text="center">
-                Lista vazia. Escreva o que você precisa comprar — durante a compra, escanear a
-                etiqueta marca o item sozinho.
+            <YStack items="center" gap="$2" py="$6">
+              <Paragraph size="$5" fontWeight="700" text="center">
+                Lista vazia
+              </Paragraph>
+              <Paragraph color="$color10" text="center" maxW={280}>
+                Escreva o que precisa comprar. Na compra, escanear a etiqueta marca o item sozinho.
               </Paragraph>
             </YStack>
           ) : null}
 
-          {items.map((item, index) => (
-            <XStack key={item.id} items="center" gap="$2" p="$2" bg="$color2" rounded="$4">
-              <Button
-                size="$3"
-                circular
-                theme={item.checked === 1 ? 'accent' : undefined}
-                onPress={() => agir(() => toggle(item.id, item.checked === 0))}
-              >
-                {item.checked === 1 ? '✓' : ' '}
-              </Button>
-              <Paragraph
-                flex={1}
-                size="$4"
-                textDecorationLine={item.checked === 1 ? 'line-through' : 'none'}
-                color={item.checked === 1 ? '$color10' : undefined}
-              >
-                {item.name}
-              </Paragraph>
-              <Button size="$2" disabled={index === 0} onPress={() => agir(() => move(item.id, -1))}>
-                ↑
-              </Button>
-              <Button
-                size="$2"
-                disabled={index === items.length - 1}
-                onPress={() => agir(() => move(item.id, 1))}
-              >
-                ↓
-              </Button>
-              <Button size="$2" onPress={() => agir(() => removeItem(item.id))}>
-                ×
-              </Button>
-            </XStack>
-          ))}
+          {pendentes.length > 0 ? (
+            <YStack gap="$2">
+              <Eyebrow count={pendentes.length}>Falta pegar</Eyebrow>
+              <YStack bg="$color2" rounded="$6" overflow="hidden">
+                {pendentes.map((item, i) => linha(item, i, pendentes.length, false))}
+              </YStack>
+            </YStack>
+          ) : null}
+
+          {comprados.length > 0 ? (
+            <YStack gap="$2">
+              <Eyebrow count={comprados.length}>Já no carrinho</Eyebrow>
+              <YStack bg="$color2" rounded="$6" overflow="hidden" opacity={0.7}>
+                {comprados.map((item, i) => linha(item, i, comprados.length, true))}
+              </YStack>
+            </YStack>
+          ) : null}
         </ScrollView>
 
-        <YStack position="absolute" b={0} l={0} r={0} gap="$2" p="$3" bg="$background">
+        <YStack
+          position="absolute"
+          b={0}
+          l={0}
+          r={0}
+          gap="$2"
+          p="$3"
+          bg="$background"
+          borderTopWidth={1}
+          borderColor="$color4"
+        >
           {tripAtiva ? (
             <>
               <Paragraph size="$2" color="$color10" text="center">
@@ -261,7 +340,8 @@ export default function ListsScreen() {
       <XStack gap="$2">
         <Input
           flex={1}
-          placeholder="Nova lista"
+          size="$4"
+          placeholder="Nome da nova lista"
           value={novaLista}
           onChangeText={setNovaLista}
           returnKeyType="done"
@@ -271,6 +351,8 @@ export default function ListsScreen() {
           }}
         />
         <Button
+          size="$4"
+          theme="accent"
           disabled={!novaLista.trim()}
           onPress={() =>
             agir(() => {
@@ -283,29 +365,38 @@ export default function ListsScreen() {
         </Button>
       </XStack>
 
-      <Separator />
-
       {lists.length === 0 ? (
-        <YStack items="center" p="$6">
-          <Paragraph color="$color10" text="center">
-            Nenhuma lista ainda. Crie uma para definir o teto de gasto — ou faça uma compra rápida
-            sem lista pela tela inicial.
+        <YStack items="center" gap="$2" py="$8">
+          <Paragraph size="$5" fontWeight="700" text="center">
+            Nenhuma lista ainda
+          </Paragraph>
+          <Paragraph color="$color10" text="center" maxW={280}>
+            Crie uma lista para definir o teto de gasto — ou faça uma compra rápida pela tela
+            inicial, sem lista.
           </Paragraph>
         </YStack>
       ) : null}
 
       {lists.map((lista) => (
-        <XStack key={lista.id} items="center" gap="$2" p="$3" bg="$color2" rounded="$4">
-          <YStack flex={1} onPress={() => agir(() => open(lista.id))}>
-            <Paragraph size="$5">{lista.name}</Paragraph>
-            <Paragraph size="$2" color="$color10">
+        <XStack
+          key={lista.id}
+          items="center"
+          gap="$2"
+          p="$4"
+          bg="$color2"
+          rounded="$6"
+          onPress={() => agir(() => open(lista.id))}
+          pressStyle={{ bg: '$color4' }}
+        >
+          <YStack flex={1} gap="$1">
+            <Paragraph size="$6" fontWeight="700">
+              {lista.name}
+            </Paragraph>
+            <Paragraph size="$2" color="$color10" {...TABULAR}>
               {lista.budgetCents ? `teto ${formatCents(lista.budgetCents)}` : 'sem teto'}
             </Paragraph>
           </YStack>
-          <Button size="$2" onPress={() => agir(() => open(lista.id))}>
-            Abrir
-          </Button>
-          <Button size="$2" onPress={() => agir(() => remove(lista.id))}>
+          <Button size="$2" chromeless color="$color10" onPress={() => agir(() => remove(lista.id))}>
             ×
           </Button>
         </XStack>

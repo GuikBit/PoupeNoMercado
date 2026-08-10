@@ -9,13 +9,14 @@
  */
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Paragraph, ScrollView, Spinner, XStack, YStack } from 'tamagui';
 
 import { appRepoContext } from '../db/client';
 import { itemsOfList, setListItemChecked } from '../db/repositories/listRepo';
 import { saveReading } from '../db/repositories/readingRepo';
 import { loadSettings } from '../db/repositories/settingsRepo';
-import type { PricingPolicy } from '../domain/pricing';
+import type { PricingPolicy, SaleUnit } from '../domain/pricing';
 import { CaptureView } from '../lab/CaptureView';
 import { registerDefaultEngines } from '../ocr/engines/bootstrap';
 import { getEngine } from '../ocr/engines/registry';
@@ -40,12 +41,18 @@ export default function ScanScreen() {
   const router = useRouter();
   const ctx = useMemo(() => appRepoContext(), []);
   const { trip, attach, addItem } = useTripStore();
+  // Esta rota roda sem cabeçalho (a câmera ocupa a tela toda), então os passos
+  // internos precisam respeitar a barra de status na mão — senão o texto sai
+  // por baixo do relógio e da bateria.
+  const insets = useSafeAreaInsets();
 
   const [etapa, setEtapa] = useState<Etapa>({ nome: 'camera' });
   const [quantidade, setQuantidade] = useState(1);
   const [erro, setErro] = useState<string | null>(null);
   /** Casamento pendente de resposta do usuário (score entre 0,45 e 0,75). */
   const [sugestao, setSugestao] = useState<ListMatch | null>(null);
+  /** Pesagem do item em confirmação — só existe para KG/L/M. */
+  const [pesando, setPesando] = useState<{ gramas: number; saleUnit: SaleUnit } | null>(null);
 
   // A tela fica ligada durante o escaneamento: apagar entre um item e outro
   // obrigaria a desbloquear dezenas de vezes por compra.
@@ -59,6 +66,7 @@ export default function ScanScreen() {
   const voltarParaCamera = useCallback(() => {
     setEtapa({ nome: 'camera' });
     setQuantidade(1);
+    setPesando(null);
     setErro(null);
   }, []);
 
@@ -162,7 +170,7 @@ export default function ScanScreen() {
 
   if (!trip) {
     return (
-      <YStack flex={1} items="center" justify="center" gap="$3" p="$4">
+      <YStack flex={1} items="center" justify="center" gap="$3" p="$4" pt={insets.top + 12}>
         <Paragraph text="center" color="$color10">
           Nenhuma compra em andamento.
         </Paragraph>
@@ -173,23 +181,67 @@ export default function ScanScreen() {
     );
   }
 
+  // Peso do item sendo confirmado. Sem isto, um produto por quilo entrava
+  // sempre como 1 kg: o botão de peso na confirmação não abria nada e só dava
+  // para corrigir depois, no carrinho.
+  if (pesando !== null) {
+    return (
+      <YStack flex={1} gap="$3" p="$4" pt={insets.top + 12}>
+        <NumericPad
+          label="Peso em gramas"
+          valueCents={pesando.gramas}
+          format={(g) => formatQuantity(gramsToQuantity(g), pesando.saleUnit)}
+          onChange={(gramas) => setPesando({ ...pesando, gramas })}
+        />
+        <XStack gap="$2">
+          <Button flex={1} onPress={() => setPesando(null)}>
+            Cancelar
+          </Button>
+          <Button
+            flex={2}
+            theme="accent"
+            disabled={pesando.gramas <= 0}
+            onPress={() => {
+              setQuantidade(gramsToQuantity(pesando.gramas));
+              setPesando(null);
+            }}
+          >
+            Usar este peso
+          </Button>
+        </XStack>
+      </YStack>
+    );
+  }
+
   if (etapa.nome === 'confirmar') {
     const reading = etapa.resultado.reading;
     if (!reading) return null;
+    const porUnidade = reading.pricing.saleUnit === 'UN';
     return (
       <ScrollView
-      flex={1}
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ pb: '$8' }}>
-        <QuantityStepper
-          quantity={quantidade}
-          saleUnit={reading.pricing.saleUnit}
-          onChange={setQuantidade}
-        />
+        flex={1}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ pt: insets.top + 12, pb: 40 }}
+      >
+        <YStack px="$3" pt="$2">
+          <QuantityStepper
+            quantity={quantidade}
+            saleUnit={reading.pricing.saleUnit}
+            onChange={setQuantidade}
+            onEditWeight={() =>
+              setPesando({
+                gramas: Math.round(quantidade * 1000),
+                saleUnit: reading.pricing.saleUnit,
+              })
+            }
+          />
+        </YStack>
         <ReadingConfirm
           reading={reading}
           decision={etapa.resultado.decision}
           quantity={quantidade}
+          useStoreCard={trip.useStoreCard === 1}
+          onQuantity={porUnidade ? setQuantidade : undefined}
           onConfirm={() => confirmarLeitura(etapa.resultado)}
           onCorrectPrice={() =>
             setEtapa({
@@ -206,7 +258,7 @@ export default function ScanScreen() {
 
   if (etapa.nome === 'manual') {
     return (
-      <YStack flex={1} gap="$3" p="$3">
+      <YStack flex={1} gap="$3" p="$3" pt={insets.top + 12}>
         <Paragraph size="$2" color="$color10">
           {etapa.nome_produto
             ? `Corrigindo: ${etapa.nome_produto}`
@@ -239,15 +291,16 @@ export default function ScanScreen() {
     <YStack flex={1}>
       <CaptureView onPhoto={processar} onError={setErro} disabled={etapa.nome === 'lendo'} />
 
-      {/* A tela de scan não tem cabeçalho, então a barra sobe até a status bar
-          do sistema. O respiro extra no topo evita os botões ficarem embaixo
-          do relógio e da bateria. */}
+      {/* A câmera fica em tela cheia de propósito e a barra flutua por cima.
+          Aqui NÃO se aplica inset: o overlay sobre imagem é legível encostado
+          no topo, e empurrar os botões para baixo comeria área de enquadramento.
+          Os passos pós-captura (confirmação e manual) é que respeitam o inset. */}
       <XStack
         position="absolute"
         t={0}
         l={0}
         r={0}
-        pt={48}
+        pt="$3"
         px="$2"
         pb="$2"
         gap="$2"
@@ -323,6 +376,3 @@ export default function ScanScreen() {
     </YStack>
   );
 }
-
-/** Reexport para manter a superfície de import da tela pequena. */
-export { formatQuantity, gramsToQuantity };

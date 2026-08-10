@@ -1,4 +1,4 @@
-import { itemTotalCents, type PricingPolicy, resolvePrice } from './pricing';
+import { itemTotalCents, priceSnapshot, type PricingPolicy, resolvePrice } from './pricing';
 
 /** Política do Vinagre — exemplo canônico de docs/02-MOTOR-RECONHECIMENTO.md §5. */
 const vinagre: PricingPolicy = {
@@ -93,5 +93,48 @@ describe('itemTotalCents', () => {
 
   it('KG: peso 1 não é tratado como "1 pacote" — é 1 kg', () => {
     expect(itemTotalCents(4990, 'KG', 1)).toBe(4990);
+  });
+});
+
+/**
+ * A tela de confirmação e o repositório precisam anunciar e gravar o MESMO
+ * número. Quando cada um fazia a sua conta, a confirmação chegou a mostrar o
+ * preço base numa quantidade que já tinha atingido a faixa.
+ */
+describe('priceSnapshot — o que a tela mostra é o que o carrinho grava', () => {
+  it('qty na faixa usa o preço da faixa, nunca o base', () => {
+    const s = priceSnapshot(vinagre, 3, false);
+    expect(s.unitPriceCents).toBe(279);
+    expect(s.totalCents).toBe(837);
+    expect(s.resolution.appliedTier?.minQty).toBe(3);
+  });
+
+  it('abaixo da faixa continua no base', () => {
+    const s = priceSnapshot(vinagre, 2, false);
+    expect(s.unitPriceCents).toBe(299);
+    expect(s.totalCents).toBe(598);
+    expect(s.resolution.appliedTier).toBeNull();
+  });
+
+  it('o cartão da loja muda o total mesmo com 1 unidade', () => {
+    expect(priceSnapshot(vinagre, 1, false).totalCents).toBe(299);
+    expect(priceSnapshot(vinagre, 1, true).totalCents).toBe(259);
+  });
+
+  it('KG: total arredonda sobre o peso, não multiplica unidades', () => {
+    const alcatra: PricingPolicy = { basePriceCents: 4990, tiers: [], saleUnit: 'KG' };
+    const s = priceSnapshot(alcatra, 0.635, false);
+    expect(s.unitPriceCents).toBe(4990);
+    expect(s.totalCents).toBe(3169);
+  });
+
+  it('total é sempre coerente com o unitário resolvido', () => {
+    for (const qty of [1, 2, 3, 23, 24, 50]) {
+      for (const card of [false, true]) {
+        const s = priceSnapshot(vinagre, qty, card);
+        expect(s.totalCents).toBe(itemTotalCents(s.unitPriceCents, 'UN', qty));
+        expect(s.unitPriceCents).toBe(resolvePrice(vinagre, qty, card).unitPriceCents);
+      }
+    }
   });
 });

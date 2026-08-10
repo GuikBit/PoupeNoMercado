@@ -1,8 +1,14 @@
 /**
- * Compra ativa: total grande, barra de orçamento e os itens escaneados.
+ * Compra ativa — a tela onde o app vive.
  *
- * O botão de escanear fica fixo no rodapé e ocupa a largura toda — é a ação
- * que se repete dezenas de vezes por compra, com o celular numa mão só.
+ * Ordem da tela = ordem da pergunta que a pessoa faz no corredor:
+ *   1. "quanto já deu?"        → total e barra de orçamento
+ *   2. "o que já peguei?"      → NA SACOLA
+ *   3. "o que ainda falta?"    → FALTA PEGAR (itens da lista não marcados)
+ *
+ * O rodapé é fixo porque escanear se repete dezenas de vezes por compra e
+ * "Finalizar" precisa estar sempre ao alcance — deixá-lo no fim da rolagem o
+ * tornava inacessível numa compra grande.
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -11,16 +17,28 @@ import { Button, Paragraph, ScrollView, XStack, YStack } from 'tamagui';
 import { appRepoContext } from '../db/client';
 import { useTripStore } from '../state/tripStore';
 import { NumericPad } from '../trip/NumericPad';
-import { QuantityStepper } from '../trip/QuantityStepper';
 import { TotalBar } from '../trip/TotalBar';
-import { formatCents, formatQuantity, gramsToQuantity } from '../ui/money';
+import { TripItemCard } from '../trip/TripItemCard';
+import { Eyebrow } from '../ui/kit';
+import { formatQuantity, gramsToQuantity } from '../ui/money';
 import { useKeepAwakeDuringTrip } from '../ui/useKeepAwake';
 
 export default function TripScreen() {
   const router = useRouter();
   const ctx = useMemo(() => appRepoContext(), []);
-  const { trip, lines, budget, attach, setQty, remove, toggleStoreCard, undoLastAdd, lastAddedId } =
-    useTripStore();
+  const {
+    trip,
+    lines,
+    budget,
+    pending,
+    attach,
+    setQty,
+    remove,
+    toggleStoreCard,
+    checkPending,
+    undoLastAdd,
+    lastAddedId,
+  } = useTripStore();
   const [pesando, setPesando] = useState<{ itemId: string; gramas: number } | null>(null);
 
   // A compra pode durar 40 minutos; a tela não pode apagar no meio.
@@ -67,7 +85,7 @@ export default function TripScreen() {
             theme="accent"
             disabled={pesando.gramas <= 0}
             onPress={() => {
-              setQty(pesando.itemId, gramasToQuantidade(pesando.gramas));
+              setQty(pesando.itemId, gramsToQuantity(pesando.gramas));
               setPesando(null);
             }}
           >
@@ -80,74 +98,103 @@ export default function TripScreen() {
 
   return (
     <YStack flex={1}>
-      {/* pb precisa caber o rodapé fixo INTEIRO (dois botões quando há desfazer),
-          senão ele come o último item da lista. */}
       <ScrollView
-      flex={1}
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ p: '$3', gap: '$3', pb: 180 }}>
+        flex={1}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ p: '$3', gap: '$4', pb: 190 }}
+      >
         <TotalBar budget={budget} itemCount={lines.length} />
 
-        <XStack items="center" justify="space-between" p="$2">
-          <Paragraph size="$3">Cartão da loja</Paragraph>
-          <Button size="$3" theme={trip.useStoreCard === 1 ? 'accent' : undefined} onPress={toggleStoreCard}>
+        <XStack items="center" justify="space-between" px="$1">
+          <Paragraph size="$3" color="$color10">
+            Cartão da loja
+          </Paragraph>
+          <Button
+            size="$3"
+            theme={trip.useStoreCard === 1 ? 'accent' : undefined}
+            onPress={toggleStoreCard}
+          >
             {trip.useStoreCard === 1 ? 'usando' : 'não uso'}
           </Button>
         </XStack>
 
         {lines.length === 0 ? (
-          <YStack items="center" gap="$2" p="$6">
-            <Paragraph color="$color10" text="center">
-              Nenhum item ainda. Aponte a câmera para a etiqueta na gôndola.
+          <YStack items="center" gap="$2" py="$6">
+            <Paragraph size="$5" fontWeight="700" text="center">
+              Nada na sacola ainda
+            </Paragraph>
+            <Paragraph color="$color10" text="center" maxW={280}>
+              Aponte a câmera para a etiqueta na gôndola. O preço entra aqui e o total sobe na hora.
+            </Paragraph>
+          </YStack>
+        ) : (
+          <YStack gap="$2">
+            <Eyebrow count={lines.length}>Na sacola</Eyebrow>
+            {lines.map((line) => (
+              <TripItemCard
+                key={line.row.id}
+                line={line}
+                onQty={(qty) => setQty(line.row.id, qty)}
+                onRemove={() => remove(line.row.id)}
+                onEditWeight={() =>
+                  setPesando({ itemId: line.row.id, gramas: Math.round(line.row.qty * 1000) })
+                }
+              />
+            ))}
+          </YStack>
+        )}
+
+        {/* O que ainda falta. Só existe quando a compra veio de uma lista —
+            é a lista de compras vista de dentro do corredor. */}
+        {pending.length > 0 ? (
+          <YStack gap="$2">
+            <Eyebrow count={pending.length}>Falta pegar</Eyebrow>
+            <YStack rounded="$6" overflow="hidden" bg="$color2">
+              {pending.map((item, index) => (
+                <XStack
+                  key={item.id}
+                  items="center"
+                  gap="$3"
+                  px="$3"
+                  py="$3"
+                  borderTopWidth={index === 0 ? 0 : 1}
+                  borderColor="$color4"
+                  onPress={() => checkPending(item.id)}
+                  pressStyle={{ bg: '$color4' }}
+                >
+                  <YStack
+                    width={22}
+                    height={22}
+                    rounded="$10"
+                    borderWidth={2}
+                    borderColor="$color8"
+                  />
+                  <Paragraph flex={1} size="$4">
+                    {item.name}
+                  </Paragraph>
+                </XStack>
+              ))}
+            </YStack>
+            <Paragraph size="$1" color="$color10" px="$1">
+              Escanear marca sozinho. Toque para marcar sem escanear.
             </Paragraph>
           </YStack>
         ) : null}
-
-        {lines.map((line) => (
-          <YStack key={line.row.id} gap="$2" p="$3" bg="$color2" rounded="$4">
-            <XStack justify="space-between" items="flex-start" gap="$2">
-              <Paragraph flex={1} size="$4" fontWeight="700">
-                {line.row.rawName}
-              </Paragraph>
-              <Paragraph size="$5" fontWeight="900">
-                {formatCents(line.row.totalCents)}
-              </Paragraph>
-            </XStack>
-
-            <Paragraph size="$2" color="$color10">
-              {formatQuantity(line.row.qty, line.row.saleUnit)} ×{' '}
-              {formatCents(line.row.unitPriceCents)}
-              {line.row.unitPriceCents < line.policy.basePriceCents
-                ? ` · faixa aplicada (de ${formatCents(line.policy.basePriceCents)})`
-                : ''}
-            </Paragraph>
-
-            <QuantityStepper
-              quantity={line.row.qty}
-              saleUnit={line.row.saleUnit as 'UN' | 'KG' | 'L' | 'M'}
-              hint={line.hint}
-              onChange={(qty) => setQty(line.row.id, qty)}
-              onEditWeight={() =>
-                setPesando({ itemId: line.row.id, gramas: Math.round(line.row.qty * 1000) })
-              }
-            />
-
-            <XStack justify="flex-end">
-              <Button size="$2" onPress={() => remove(line.row.id)}>
-                Remover
-              </Button>
-            </XStack>
-          </YStack>
-        ))}
-
       </ScrollView>
 
-      {/* Rodapé fixo. "Finalizar" mora AQUI, não no fim da lista: com muitos
-          itens escaneados ele ficava longe demais e por baixo deste próprio
-          rodapé — impossível fechar a compra sem rolar até o fim. */}
-      <YStack position="absolute" b={0} l={0} r={0} gap="$2" p="$3" bg="$background">
+      <YStack
+        position="absolute"
+        b={0}
+        l={0}
+        r={0}
+        gap="$2"
+        p="$3"
+        bg="$background"
+        borderTopWidth={1}
+        borderColor="$color4"
+      >
         {lastAddedId ? (
-          <Button size="$3" onPress={undoLastAdd}>
+          <Button size="$3" chromeless color="$color10" onPress={undoLastAdd}>
             Desfazer último item
           </Button>
         ) : null}
@@ -162,9 +209,4 @@ export default function TripScreen() {
       </YStack>
     </YStack>
   );
-}
-
-/** Gramas → unidade base. Extraído para o handler ficar legível. */
-function gramasToQuantidade(gramas: number): number {
-  return gramsToQuantity(gramas);
 }

@@ -7,13 +7,14 @@
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Button, Paragraph, ScrollView, Separator, XStack, YStack } from 'tamagui';
+import { Button, Paragraph, ScrollView, XStack, YStack } from 'tamagui';
 
 import { appRepoContext } from '../db/client';
 import { duplicateTripAsList } from '../db/repositories/duplicateTrip';
 import { finishedTrips, itemsOfTrip } from '../db/repositories/tripRepo';
 import type { ShoppingTripRow } from '../db/schema';
 import { useListStore } from '../state/listStore';
+import { Eyebrow, Money, TABULAR } from '../ui/kit';
 import { formatCents } from '../ui/money';
 
 function formatarData(epochMs: number | null): string {
@@ -67,7 +68,7 @@ export default function HistoryScreen() {
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{ p: '$3', gap: '$3' }}>
       {aviso ? (
-        <YStack p="$3" bg="$green2" rounded="$4">
+        <YStack p="$4" bg="$green2" rounded="$6">
           <Paragraph size="$3" color="$green11">
             {aviso}
           </Paragraph>
@@ -79,23 +80,23 @@ export default function HistoryScreen() {
 
       {trips.map((trip) => {
         const itens = itemsOfTrip(ctx.db, trip.id);
+        const estourou = trip.budgetCents !== null && trip.totalCents > trip.budgetCents;
         return (
-          <YStack key={trip.id} gap="$2" p="$3" bg="$color2" rounded="$4">
-            <XStack justify="space-between" items="baseline">
-              <Paragraph size="$3" color="$color10">
-                {formatarData(trip.finishedAt)}
-              </Paragraph>
-              <Paragraph size="$7" fontWeight="900">
-                {formatCents(trip.totalCents)}
-              </Paragraph>
+          <YStack key={trip.id} gap="$2" p="$4" bg="$color2" rounded="$6">
+            <XStack justify="space-between" items="baseline" gap="$2">
+              <Eyebrow>{formatarData(trip.finishedAt)}</Eyebrow>
+              <Money
+                cents={trip.totalCents}
+                format={formatCents}
+                size="$7"
+                color={estourou ? '$red10' : undefined}
+              />
             </XStack>
 
-            <Paragraph size="$2" color="$color10">
+            <Paragraph size="$2" color="$color10" {...TABULAR}>
               {`${itens.length} ${itens.length === 1 ? 'item' : 'itens'}`}
               {trip.budgetCents
-                ? ` · teto de ${formatCents(trip.budgetCents)}${
-                    trip.totalCents > trip.budgetCents ? ' (estourou)' : ''
-                  }`
+                ? ` · teto de ${formatCents(trip.budgetCents)}${estourou ? ' (estourou)' : ''}`
                 : ''}
             </Paragraph>
 
@@ -110,8 +111,7 @@ export default function HistoryScreen() {
               </Paragraph>
             ) : null}
 
-            <Separator />
-            <Button size="$3" onPress={() => duplicar(trip)}>
+            <Button size="$3" mt="$1" onPress={() => duplicar(trip)}>
               Repetir esta compra como lista
             </Button>
           </YStack>
