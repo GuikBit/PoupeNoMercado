@@ -10,6 +10,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Button, H3, Paragraph, Separator, XStack, YStack } from 'tamagui';
 
 import { appRepoContext } from '../db/client';
+import { loadSettings } from '../db/repositories/settingsRepo';
 import { useTripStore } from '../state/tripStore';
 import { NumericPad } from '../trip/NumericPad';
 import { formatCents } from '../ui/money';
@@ -28,7 +29,12 @@ export default function Home() {
   );
 
   function iniciar() {
-    start({ budgetCents: budgetCents > 0 ? budgetCents : null });
+    // O padrão de cartão da loja vem das configurações — evita ter de ligar a
+    // cada compra quem sempre usa o cartão.
+    start({
+      budgetCents: budgetCents > 0 ? budgetCents : null,
+      useStoreCard: loadSettings(ctx.db).defaultUseStoreCard,
+    });
     setDefinindoTeto(false);
     setBudgetCents(0);
     router.push('/trip');
@@ -61,6 +67,10 @@ export default function Home() {
           <Button size="$5">Minhas listas</Button>
         </Link>
 
+        <Link href="/history" asChild>
+          <Button size="$5">Histórico</Button>
+        </Link>
+
         <Separator />
         <Button
           size="$3"
@@ -71,6 +81,9 @@ export default function Home() {
         >
           Abandonar esta compra
         </Button>
+        <Link href="/settings" asChild>
+          <Button size="$3">Configurações</Button>
+        </Link>
         <Link href="/lab" asChild>
           <Button size="$3">Laboratório de Etiquetas</Button>
         </Link>
@@ -118,8 +131,14 @@ export default function Home() {
       <Link href="/lists" asChild>
         <Button size="$5">Minhas listas</Button>
       </Link>
+      <Link href="/history" asChild>
+        <Button size="$5">Histórico</Button>
+      </Link>
 
       <Separator />
+      <Link href="/settings" asChild>
+        <Button size="$3">Configurações</Button>
+      </Link>
       <Link href="/lab" asChild>
         <Button size="$3">Laboratório de Etiquetas</Button>
       </Link>

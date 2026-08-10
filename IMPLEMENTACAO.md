@@ -274,8 +274,15 @@ sem abrir o app. — ✅ `cart.test.ts` faz exatamente isso no último bloco.
       o que ficou pendente na lista
 - [x] **Casamento com a lista ao escanear** (§8) — marca sozinho acima de 0,75,
       pergunta entre 0,45 e 0,75, cala abaixo
-- [ ] Histórico + "duplicar esta compra"
-- [ ] Configurações: cartão da loja, consentimentos, sobre
+- [x] Histórico + "duplicar esta compra"
+      ⚠️ Duplicar gera uma **lista**, não um carrinho pronto. Preço de mês
+      passado não é preço de hoje: um total pré-preenchido teria cara de
+      verdade estando desatualizado — o "erro confiante" do princípio nº 5.
+      Carrega o que não envelhece (o que comprar) e descarta o que envelhece.
+- [x] Configurações: cartão da loja, consentimentos, sobre
+      Consentimentos começam **desligados** e dizem exatamente o que sai do
+      aparelho. O de nuvem governa de fato o escalonamento do `scanLabel` —
+      não é botão decorativo.
 
 ### 5.3 UX crítica
 - [x] Escaneamento contínuo — volta para a câmera a cada item confirmado

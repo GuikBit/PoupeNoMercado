@@ -118,6 +118,17 @@ export function getTrip(db: AppDb, tripId: string): ShoppingTripRow | null {
   return db.select().from(shoppingTrip).where(eq(shoppingTrip.id, tripId)).get() ?? null;
 }
 
+/** Compras encerradas, mais recentes primeiro — alimenta o histórico. */
+export function finishedTrips(db: AppDb, limit = 50): ShoppingTripRow[] {
+  return db
+    .select()
+    .from(shoppingTrip)
+    .where(and(eq(shoppingTrip.status, 'finished'), isNull(shoppingTrip.deletedAt)))
+    .orderBy(desc(shoppingTrip.finishedAt))
+    .limit(limit)
+    .all();
+}
+
 export function itemsOfTrip(db: AppDb, tripId: string): TripItemRow[] {
   return db
     .select()

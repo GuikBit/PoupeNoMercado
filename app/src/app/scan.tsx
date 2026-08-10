@@ -14,11 +14,13 @@ import { Button, Paragraph, ScrollView, Spinner, XStack, YStack } from 'tamagui'
 import { appRepoContext } from '../db/client';
 import { itemsOfList, setListItemChecked } from '../db/repositories/listRepo';
 import { saveReading } from '../db/repositories/readingRepo';
+import { loadSettings } from '../db/repositories/settingsRepo';
 import type { PricingPolicy } from '../domain/pricing';
 import { CaptureView } from '../lab/CaptureView';
 import { registerDefaultEngines } from '../ocr/engines/bootstrap';
-import type { ImageRef } from '../ocr/types';
-import { scanLabel,type ScanOutcome } from '../scan/scanPipeline';
+import { getEngine } from '../ocr/engines/registry';
+import type { ImageRef, OcrResult } from '../ocr/types';
+import { FALLBACK_ENGINE, scanLabel,type ScanOutcome } from '../scan/scanPipeline';
 import { useTripStore } from '../state/tripStore';
 import { type ListMatch, matchScanToList, suggestionLabel } from '../trip/listMatching';
 import { NumericPad } from '../trip/NumericPad';
@@ -74,11 +76,31 @@ export default function ScanScreen() {
     if (match.action === 'suggest') setSugestao(match);
   }
 
+  /**
+   * Escalonamento para a nuvem — só com consentimento explícito, porque manda
+   * a IMAGEM da etiqueta para fora do aparelho. Devolver null significa "não
+   * dá para escalar agora", e o fluxo segue para a entrada manual.
+   */
+  function escalonamento(): ((image: ImageRef) => Promise<OcrResult | null>) | undefined {
+    if (!loadSettings(ctx.db).consentCloudOcr) return undefined;
+    return async (image) => {
+      try {
+        return await getEngine(FALLBACK_ENGINE).recognize(image);
+      } catch {
+        // Sem rede, sem chave, timeout: cai no manual, que nunca bloqueia.
+        return null;
+      }
+    };
+  }
+
   async function processar(photo: ImageRef) {
     setEtapa({ nome: 'lendo' });
     setErro(null);
     try {
-      const resultado = await scanLabel(photo, { capturedAt: new Date().toISOString() });
+      const resultado = await scanLabel(photo, {
+        capturedAt: new Date().toISOString(),
+        escalateFn: escalonamento(),
+      });
 
       if (resultado.reading) {
         // Auditoria: guarda OCR bruto e parse — é o que permite melhorar o
