@@ -17,7 +17,7 @@ import { formatCents } from '../ui/money';
 export default function Home() {
   const router = useRouter();
   const ctx = useMemo(() => appRepoContext(), []);
-  const { trip, budget, lines, attach, start } = useTripStore();
+  const { trip, budget, lines, attach, start, abandon } = useTripStore();
   const [budgetCents, setBudgetCents] = useState(0);
   const [definindoTeto, setDefinindoTeto] = useState(false);
 
@@ -45,7 +45,7 @@ export default function Home() {
             {formatCents(budget.spentCents)}
           </Paragraph>
           <Paragraph size="$3" color="$color10">
-            {lines.length} {lines.length === 1 ? 'item' : 'itens'}
+            {`${lines.length} ${lines.length === 1 ? 'item' : 'itens'}`}
           </Paragraph>
         </YStack>
 
@@ -55,7 +55,22 @@ export default function Home() {
           </Button>
         </Link>
 
+        {/* Estes caminhos precisam existir MESMO com compra aberta: sem eles o
+            usuário fica preso na compra, sem chegar às listas nem ao Lab. */}
+        <Link href="/lists" asChild>
+          <Button size="$5">Minhas listas</Button>
+        </Link>
+
         <Separator />
+        <Button
+          size="$3"
+          onPress={() => {
+            abandon();
+            setDefinindoTeto(false);
+          }}
+        >
+          Abandonar esta compra
+        </Button>
         <Link href="/lab" asChild>
           <Button size="$3">Laboratório de Etiquetas</Button>
         </Link>

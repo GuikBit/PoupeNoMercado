@@ -13,6 +13,7 @@ import { create } from 'zustand';
 
 import type { RepoContext } from '../db/outbox';
 import {
+  abandonTrip,
   activeTrip,
   addTripItem,
   finishTrip,
@@ -48,7 +49,9 @@ export interface TripState {
 
   attach(ctx: RepoContext): void;
   reload(): void;
-  start(input?: StartTripInput): void;
+  /** Inicia uma compra, ou RETOMA a que já estiver aberta. Nunca cria duas. */
+  start(input?: StartTripInput): ShoppingTripRow | null;
+  abandon(): void;
   addItem(input: Parameters<typeof addTripItem>[2]): TripItemRow | null;
   setQty(itemId: string, qty: number): void;
   remove(itemId: string): void;
@@ -117,9 +120,29 @@ export const useTripStore = create<TripState>((set, get) => ({
     });
   },
 
+  /**
+   * Retoma a compra aberta em vez de criar outra. Criar uma segunda deixava o
+   * app preso: a nova ficava invisível e a antiga não saía da tela.
+   */
   start(input = {}) {
     const ctx = requireCtx(get().ctx);
-    startTrip(ctx, input);
+    const aberta = activeTrip(ctx.db);
+    if (aberta) {
+      get().reload();
+      return aberta;
+    }
+    const nova = startTrip(ctx, input);
+    get().reload();
+    return nova;
+  },
+
+  /** Saída de emergência: descarta a compra e libera o app. */
+  abandon() {
+    const ctx = requireCtx(get().ctx);
+    const { trip } = get();
+    if (!trip) return;
+    abandonTrip(ctx, trip.id);
+    set({ lastAddedId: null });
     get().reload();
   },
 

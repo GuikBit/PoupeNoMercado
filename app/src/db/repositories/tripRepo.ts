@@ -10,7 +10,7 @@
  * O total da compra é desnormalizado (docs/03 §3) e recalculado dentro da
  * mesma transação de qualquer mutação de item — nunca fica velho.
  */
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull } from 'drizzle-orm';
 
 import { normalizeProductName } from '../../domain/matching';
 import { itemTotalCents, type PricingPolicy, resolvePrice, type SaleUnit } from '../../domain/pricing';
@@ -30,7 +30,21 @@ export interface StartTripInput {
   useStoreCard?: boolean;
 }
 
+/**
+ * ⚠️ Só pode existir UMA compra ativa por vez.
+ *
+ * Sem esta guarda, iniciar uma compra com outra aberta gravava a segunda e o
+ * app continuava mostrando a primeira — o usuário ficava preso numa compra
+ * que não conseguia fechar nem trocar. Quem quiser trocar precisa finalizar
+ * ou abandonar a anterior, explicitamente.
+ */
 export function startTrip(ctx: RepoContext, input: StartTripInput = {}): ShoppingTripRow {
+  const existente = activeTrip(ctx.db);
+  if (existente) {
+    throw new Error(
+      `Já existe uma compra em andamento (${existente.id}). Finalize ou abandone antes de começar outra.`,
+    );
+  }
   const id = ctx.newId();
   return mutate(ctx, 'shopping_trip', 'upsert', (tx, now) => {
     const row: ShoppingTripRow = {
@@ -54,15 +68,50 @@ export function startTrip(ctx: RepoContext, input: StartTripInput = {}): Shoppin
   });
 }
 
+/**
+ * A compra ativa é a MAIS RECENTE. Ordenar pela mais antiga fazia uma compra
+ * esquecida sequestrar o app para sempre, escondendo qualquer outra.
+ */
 export function activeTrip(db: AppDb): ShoppingTripRow | null {
   return (
     db
       .select()
       .from(shoppingTrip)
       .where(and(eq(shoppingTrip.status, 'active'), isNull(shoppingTrip.deletedAt)))
-      .orderBy(asc(shoppingTrip.startedAt))
+      .orderBy(desc(shoppingTrip.startedAt))
       .get() ?? null
   );
+}
+
+/** Todas as compras ativas — só deveria haver uma; ver `repairActiveTrips`. */
+export function allActiveTrips(db: AppDb): ShoppingTripRow[] {
+  return db
+    .select()
+    .from(shoppingTrip)
+    .where(and(eq(shoppingTrip.status, 'active'), isNull(shoppingTrip.deletedAt)))
+    .orderBy(desc(shoppingTrip.startedAt))
+    .all();
+}
+
+/**
+ * Conserta bancos que já ficaram com mais de uma compra ativa (bug corrigido
+ * em 10/08/2026: `startTrip` não checava e `activeTrip` devolvia a mais
+ * antiga, prendendo o app numa compra que não saía da tela).
+ *
+ * Mantém a mais recente e abandona as demais. Usa `abandonTrip` em vez de SQL
+ * cru justamente para as mudanças entrarem no outbox e sincronizarem.
+ *
+ * Devolve quantas foram abandonadas.
+ */
+export function repairActiveTrips(ctx: RepoContext): number {
+  const ativas = allActiveTrips(ctx.db);
+  if (ativas.length <= 1) return 0;
+
+  const [, ...antigas] = ativas;
+  for (const trip of antigas) {
+    abandonTrip(ctx, trip.id);
+  }
+  return antigas.length;
 }
 
 export function getTrip(db: AppDb, tripId: string): ShoppingTripRow | null {
@@ -238,6 +287,24 @@ export function setUseStoreCard(
       totalCents,
       updatedAt: now,
     };
+    return { id: tripId, row };
+  });
+}
+
+/**
+ * Abandona a compra — saída de emergência. Diferente de finalizar: não conta
+ * como compra concluída no histórico, mas libera o app.
+ */
+export function abandonTrip(ctx: RepoContext, tripId: string): ShoppingTripRow {
+  return mutate(ctx, 'shopping_trip', 'upsert', (tx, now) => {
+    const trip = requireTrip(tx, tripId);
+    const row: ShoppingTripRow = {
+      ...trip,
+      status: 'abandoned',
+      finishedAt: now,
+      updatedAt: now,
+    };
+    tx.update(shoppingTrip).set(row).where(eq(shoppingTrip.id, tripId)).run();
     return { id: tripId, row };
   });
 }

@@ -13,6 +13,7 @@ import { openDatabaseSync, type SQLiteDatabase } from 'expo-sqlite';
 import { newId } from './ids';
 import { runMigrations } from './migrations';
 import type { AppDb, RepoContext } from './outbox';
+import { repairActiveTrips } from './repositories/tripRepo';
 import { syncState } from './schema';
 
 const DATABASE_NAME = 'poupe.db';
@@ -25,6 +26,7 @@ const DEVICE_ID_KEY = 'device_id';
  */
 const cache = globalThis as {
   __poupeDb?: { native: SQLiteDatabase; db: AppDb; deviceId: string };
+  __poupeRepaired?: boolean;
 };
 
 function migrate(native: SQLiteDatabase): void {
@@ -62,5 +64,13 @@ export function openAppDb(): { db: AppDb; deviceId: string } {
 
 export function appRepoContext(): RepoContext {
   const { db, deviceId } = openAppDb();
-  return { db, deviceId, now: () => Date.now(), newId: () => newId() };
+  const ctx: RepoContext = { db, deviceId, now: () => Date.now(), newId: () => newId() };
+
+  // Reparo único de bancos que ficaram com mais de uma compra ativa. Roda uma
+  // vez por processo: é barato (um SELECT) e sem efeito quando está tudo certo.
+  if (!cache.__poupeRepaired) {
+    cache.__poupeRepaired = true;
+    repairActiveTrips(ctx);
+  }
+  return ctx;
 }

@@ -19,6 +19,7 @@ export default function ListsScreen() {
     useListStore();
   const startTrip = useTripStore((s) => s.start);
   const attachTrip = useTripStore((s) => s.attach);
+  const tripAtiva = useTripStore((s) => s.trip);
 
   const [novaLista, setNovaLista] = useState('');
   const [novoItem, setNovoItem] = useState('');
@@ -36,7 +37,8 @@ export default function ListsScreen() {
     const pendentes = items.filter((i) => i.checked === 0).length;
     return (
       <YStack flex={1}>
-        <ScrollView flex={1} contentContainerStyle={{ p: '$3', gap: '$2', pb: '$10' }}>
+        {/* Espaço para o rodapé fixo não cobrir o último item. */}
+        <ScrollView flex={1} contentContainerStyle={{ p: '$3', gap: '$2', pb: 160 }}>
           <XStack items="center" justify="space-between">
             <Paragraph size="$6" fontWeight="700">
               {listaAberta.name}
@@ -115,17 +117,31 @@ export default function ListsScreen() {
           ))}
         </ScrollView>
 
-        <YStack position="absolute" b={0} l={0} r={0} p="$3" bg="$background">
-          <Button
-            size="$6"
-            theme="accent"
-            onPress={() => {
-              startTrip({ listId: listaAberta.id, budgetCents: listaAberta.budgetCents });
-              router.push('/trip');
-            }}
-          >
-            Iniciar compra com esta lista
-          </Button>
+        <YStack position="absolute" b={0} l={0} r={0} gap="$2" p="$3" bg="$background">
+          {/* Com compra aberta o botão não pode fingir que inicia outra: só
+              existe uma compra ativa por vez, e mentir aqui foi o que deixou
+              o usuário preso antes. */}
+          {tripAtiva ? (
+            <>
+              <Paragraph size="$2" color="$color10" text="center">
+                Já existe uma compra em andamento. Finalize-a para começar outra.
+              </Paragraph>
+              <Button size="$5" theme="accent" onPress={() => router.push('/trip')}>
+                Ir para a compra em andamento
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="$6"
+              theme="accent"
+              onPress={() => {
+                startTrip({ listId: listaAberta.id, budgetCents: listaAberta.budgetCents });
+                router.push('/trip');
+              }}
+            >
+              Iniciar compra com esta lista
+            </Button>
+          )}
         </YStack>
       </YStack>
     );

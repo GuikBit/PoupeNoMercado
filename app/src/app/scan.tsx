@@ -214,7 +214,20 @@ export default function ScanScreen() {
     <YStack flex={1}>
       <CaptureView onPhoto={processar} onError={setErro} disabled={etapa.nome === 'lendo'} />
 
-      <XStack position="absolute" t={0} l={0} r={0} p="$2" gap="$2" justify="space-between">
+      {/* A tela de scan não tem cabeçalho, então a barra sobe até a status bar
+          do sistema. O respiro extra no topo evita os botões ficarem embaixo
+          do relógio e da bateria. */}
+      <XStack
+        position="absolute"
+        t={0}
+        l={0}
+        r={0}
+        pt={48}
+        px="$2"
+        pb="$2"
+        gap="$2"
+        justify="space-between"
+      >
         <Button size="$3" onPress={() => router.back()}>
           Voltar
         </Button>

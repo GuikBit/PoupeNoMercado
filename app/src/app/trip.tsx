@@ -80,7 +80,9 @@ export default function TripScreen() {
 
   return (
     <YStack flex={1}>
-      <ScrollView flex={1} contentContainerStyle={{ p: '$3', gap: '$3', pb: '$10' }}>
+      {/* pb precisa caber o rodapé fixo INTEIRO (dois botões quando há desfazer),
+          senão ele come o último item da lista. */}
+      <ScrollView flex={1} contentContainerStyle={{ p: '$3', gap: '$3', pb: 180 }}>
         <TotalBar budget={budget} itemCount={lines.length} />
 
         <XStack items="center" justify="space-between" p="$2">

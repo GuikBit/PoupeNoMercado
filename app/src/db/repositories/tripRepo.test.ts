@@ -5,16 +5,21 @@
  * é snapshot DERIVADO, e mudar a quantidade tem de re-resolver a faixa.
  * Guardar um preço unitário congelado pareceria funcionar e daria total errado.
  */
+import { sql } from 'drizzle-orm';
+
 import type { PricingPolicy } from '../../domain/pricing';
 import { pendingOutbox } from '../outbox';
 import { createTestDb, type TestDb } from '../testDb';
 import {
+  abandonTrip,
   activeTrip,
   addTripItem,
+  allActiveTrips,
   finishTrip,
   getTrip,
   itemsOfTrip,
   removeTripItem,
+  repairActiveTrips,
   setTripItemQty,
   setUseStoreCard,
   startTrip,
@@ -148,6 +153,27 @@ describe('compra e itens', () => {
     expect(item.unitPriceCents).toBe(259);
   });
 
+  it('recusa abrir uma segunda compra com uma já ativa', () => {
+    startTrip(t.ctx);
+    // Duas compras ativas deixavam o app preso: activeTrip devolvia sempre uma
+    // delas e a outra ficava invisível para sempre.
+    expect(() => startTrip(t.ctx)).toThrow(/já existe uma compra/i);
+  });
+
+  it('permite nova compra depois de finalizar a anterior', () => {
+    const primeira = startTrip(t.ctx);
+    finishTrip(t.ctx, primeira.id);
+    const segunda = startTrip(t.ctx);
+    expect(activeTrip(t.db)?.id).toBe(segunda.id);
+  });
+
+  it('abandonar libera para começar outra', () => {
+    const primeira = startTrip(t.ctx);
+    abandonTrip(t.ctx, primeira.id);
+    expect(activeTrip(t.db)).toBeNull();
+    expect(() => startTrip(t.ctx)).not.toThrow();
+  });
+
   it('finalizar tira a compra da lista de ativas', () => {
     const trip = startTrip(t.ctx);
     finishTrip(t.ctx, trip.id);
@@ -157,6 +183,56 @@ describe('compra e itens', () => {
 
   it('recusa mexer em item inexistente', () => {
     expect(() => setTripItemQty(t.ctx, 'nao-existe', 1)).toThrow(/não encontrado/i);
+  });
+});
+
+describe('reparo de compras ativas duplicadas', () => {
+  /**
+   * Recria o estado quebrado que existia ANTES da guarda em `startTrip`.
+   * Precisa ser SQL cru justamente porque a guarda agora impede chegar nele
+   * pelo caminho normal — o que é o comportamento desejado.
+   */
+  function criarDuplicadas(quantas: number) {
+    const ids: string[] = [];
+    for (let i = 0; i < quantas; i++) {
+      const id = `dup-${i}`;
+      const startedAt = 1_770_000_000_000 + i * 1000;
+      ids.push(id);
+      t.ctx.db.run(sql`
+        INSERT INTO shopping_trip
+          (id, status, use_store_card, started_at, total_cents, created_at, updated_at, device_id)
+        VALUES (${id}, 'active', 0, ${startedAt}, 0, ${startedAt}, ${startedAt}, 'device-test')
+      `);
+    }
+    return ids;
+  }
+
+  it('mantém a mais recente e abandona as outras', () => {
+    const ids = criarDuplicadas(3);
+    expect(allActiveTrips(t.db)).toHaveLength(3);
+
+    expect(repairActiveTrips(t.ctx)).toBe(2);
+
+    const restantes = allActiveTrips(t.db);
+    expect(restantes).toHaveLength(1);
+    expect(restantes[0]?.id).toBe(ids[2]);
+    expect(activeTrip(t.db)?.id).toBe(ids[2]);
+  });
+
+  it('não faz nada quando já está correto', () => {
+    startTrip(t.ctx);
+    expect(repairActiveTrips(t.ctx)).toBe(0);
+  });
+
+  it('não faz nada com banco vazio', () => {
+    expect(repairActiveTrips(t.ctx)).toBe(0);
+  });
+
+  it('o abandono entra no outbox — a limpeza precisa sincronizar', () => {
+    criarDuplicadas(2);
+    const antes = pendingOutbox(t.db, 500).length;
+    repairActiveTrips(t.ctx);
+    expect(pendingOutbox(t.db, 500).length).toBeGreaterThan(antes);
   });
 });
 
