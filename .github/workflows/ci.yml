@@ -31,3 +31,8 @@ jobs:
 
       - name: Test
         run: npm run test
+
+      # Gate da Etapa 3: re-executa o parser sobre os 51 casos reais de campo e
+      # falha se qualquer acurácia cair ou o erro confiante subir.
+      - name: Gate de regressão do parser
+        run: npm run lab:gate

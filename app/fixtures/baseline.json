@@ -1,0 +1,49 @@
+{
+  "corpus": "fixtures/lab-2026-08-08.cases.json",
+  "totalCases": 51,
+  "withGroundTruth": 45,
+  "engines": {
+    "cloudvision": {
+      "priceAccuracyAB": 1,
+      "confidentErrorRate": 0,
+      "unitAccuracy": 0.9555555555555556,
+      "nameSimilarityMean": 0.7247423438366537,
+      "abstentionCoverage": null,
+      "byType": {
+        "bahamas_gondola": {
+          "priceAccuracy": 1,
+          "tierAccuracy": 0.9230769230769231
+        },
+        "bahamas_oferta": {
+          "priceAccuracy": 1,
+          "tierAccuracy": 1
+        },
+        "bahamas_perecivel": {
+          "priceAccuracy": 1,
+          "tierAccuracy": 1
+        }
+      }
+    },
+    "mlkit": {
+      "priceAccuracyAB": 0.625,
+      "confidentErrorRate": 0,
+      "unitAccuracy": 0.7555555555555555,
+      "nameSimilarityMean": 0.7555555555555555,
+      "abstentionCoverage": 0.8571428571428571,
+      "byType": {
+        "bahamas_gondola": {
+          "priceAccuracy": 0.5384615384615384,
+          "tierAccuracy": 0.46153846153846156
+        },
+        "bahamas_oferta": {
+          "priceAccuracy": 0.6842105263157895,
+          "tierAccuracy": 0.7368421052631579
+        },
+        "bahamas_perecivel": {
+          "priceAccuracy": 0.8461538461538461,
+          "tierAccuracy": 0.7692307692307693
+        }
+      }
+    }
+  }
+}

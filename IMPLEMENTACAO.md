@@ -129,16 +129,20 @@ resultados lado a lado, preenche o gabarito e o caso é salvo.
 
 **Entregável:** 60 casos coletados, análise concluída, motor escolhido.
 
-- [ ] Checklist pré-saída (`docs/06-PLANO-VALIDACAO.md` §4)
-- [ ] **Ida ao mercado (~45 min)** — cumprir a cota por tipo:
-      A=15 · **B=20** · **C=15** · D=5 · adversariais=5
-- [ ] Exportar e copiar para `app/fixtures/labels/` (+ `cases.json` na raiz do export)
+- [x] Checklist pré-saída (`docs/06-PLANO-VALIDACAO.md` §4)
+- [x] **Ida ao mercado** — 08/08/2026, 51 casos (45 com gabarito)
+      ⚠️ cota parcial: A≈22 ✅ · B≈14 ⚠️ · C≈15 ✅ · D≈1 ❌ · adversariais=0 ❌
+      (o seletor de tipo e as condições de captura ficaram travados na coleta)
+- [x] Exportar e copiar para `app/fixtures/labels/` (+ `lab-2026-08-08.cases.json`)
 - [x] `app/scripts/analyze-lab.ts` — relatório com M1–M7 segmentado por tipo
       (`npm run analyze:lab -- <cases.json>`; re-roda o parser atual sobre o OCR bruto)
-- [ ] Revisão qualitativa: erros confiantes, discordâncias, adversariais
-- [ ] Relatório em `docs/resultados/lab-YYYY-MM-DD.md`
+- [x] Revisão qualitativa: erros confiantes, discordâncias, adversariais
+      → **os 2 "erros confiantes" eram gabarito errado**; 9 gabaritos corrigidos
+      contra a imagem (ver relatório §3)
+- [x] Relatório em `docs/resultados/lab-2026-08-10.md`
 - [ ] **Atualizar ADR-002** em `docs/01-ARQUITETURA.md` com a decisão
-- [ ] Gravar `app/fixtures/baseline.json` para o gate de CI
+      🚪 **em aberto** — depende do pré-processamento da Etapa 3
+- [x] Gravar `app/fixtures/baseline.json` para o gate de CI
 
 **🚪 Portão de decisão** — consulte `docs/06-PLANO-VALIDACAO.md` §6:
 
@@ -157,14 +161,25 @@ resultados lado a lado, preenche o gabarito e o caso é salvo.
 
 **Entregável:** parser atingindo as metas contra os 60 casos.
 
-- [ ] Corrigir os erros priorizados na Etapa 2
-- [ ] Pré-processamento para o Tipo C: binarização adaptativa, upscale 2×,
-      correção de inclinação
-- [ ] Ajustar limiares de confiança com base nos dados reais
-- [ ] Gate de CI: falha se a acurácia cair abaixo do `baseline.json`
-- [ ] Testes T1–T14 passando integralmente
+- [x] Corrigir os erros priorizados na Etapa 2 — 4 defeitos do parser, todos de
+      geometria ou fraseologia (ver `docs/resultados/lab-2026-08-10.md` §9)
+- [ ] **Pré-processamento do preço em fonte grande**: binarização adaptativa,
+      upscale 2×, correção de inclinação
+      ⚠️ O plano original mirava o **Tipo C**; a coleta mostrou que o Tipo C é o
+      **melhor** tipo (100%/84,6%) e que o alvo real é o dígito em fonte grande,
+      onde o ML Kit falha em 9 casos. **Exige ciclo no device** — o `analyze:lab`
+      re-roda o parser, não o motor.
+- [x] Ajustar limiares de confiança com base nos dados reais — **V11** (razão
+      faixa/base ≥ 50%), calibrada nos 31 tiers reais (desconto máximo 22,8%)
+- [x] Gate de CI: `npm run lab:gate` falha se a acurácia cair abaixo do
+      `baseline.json` (ligado no `.github/workflows/ci.yml`)
+- [x] Testes T1–T14 passando integralmente (118 testes, 17 suítes)
 
 **✅ Concluída quando:** M1 ≥ 95% (A,B) e M3 ≤ 1% contra o gabarito.
+
+> **Estado:** atingida no **Cloud Vision** (M1 A+B **100,0%**, M3 **0,0%**).
+> **Não** atingida no ML Kit (M1 A+B 62,5%, M3 0,0%) — o que falta é motor, não
+> parser: 9 dos 13 erros são dígito perdido no OCR, não extração.
 
 ---
 

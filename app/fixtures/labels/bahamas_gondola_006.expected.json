@@ -1,0 +1,23 @@
+{
+  "raw_name": "BISCOTO POLVILHO BAH 08 NG",
+  "base_price_cents": 399,
+  "tiers": [
+    {
+      "min_qty": 3,
+      "price_cents": 349,
+      "condition": {
+        "kind": "none"
+      }
+    },
+    {
+      "min_qty": 1,
+      "price_cents": 349,
+      "condition": {
+        "kind": "store_card",
+        "card_name": "BAHAMAS CRED"
+      }
+    }
+  ],
+  "sale_unit": "UN",
+  "internal_code": "128518"
+}

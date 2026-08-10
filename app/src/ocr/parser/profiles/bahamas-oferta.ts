@@ -25,13 +25,18 @@ function findAnchorItem(items: PositionedText[], pattern: RegExp): PositionedTex
 /**
  * Preço base do DE/POR: o bloco de MAIOR ÁREA abaixo da âncora POR: que
  * contenha dinheiro — nunca uma linha de preço/kg (armadilha do R$ 52,41).
+ *
+ * ⚠️ "Abaixo" é medido pelo CENTRO vertical do candidato, não pelo topo da
+ * caixa. O preço em destaque é várias vezes mais alto que a linha "POR: R$",
+ * então o topo dele fica ACIMA do topo da âncora mesmo estando visualmente
+ * abaixo — comparar topo com topo descartava justamente o preço certo.
  */
 function extractBigPrice(
   items: PositionedText[],
   toAnchor: PositionedText,
 ): { item: PositionedText; cents: number; saleUnit: SaleUnit | null } | null {
   const candidates = items
-    .filter((i) => i !== toAnchor && i.box.y >= toAnchor.box.y - 0.02)
+    .filter((i) => i !== toAnchor && i.box.y + i.box.h / 2 >= toAnchor.box.y)
     .filter((i) => !RE.MEASURE_PRICE_LABEL.test(i.text) && !RE.FROM.test(i.text))
     .filter((i) => !RE.DATE.test(i.text))
     .filter((i) => MONEY_LOOSE_TEXT.test(i.text))

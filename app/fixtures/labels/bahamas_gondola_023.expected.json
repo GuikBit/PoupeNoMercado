@@ -1,0 +1,22 @@
+{
+  "raw_name": "MIX DE TEMPERO KITANO 40G",
+  "base_price_cents": 799,
+  "tiers": [
+    {
+      "min_qty": 3,
+      "price_cents": 739,
+      "condition": {
+        "kind": "none"
+      }
+    },
+    {
+      "min_qty": 1,
+      "price_cents": 739,
+      "condition": {
+        "kind": "store_card",
+        "card_name": "BAHAMAS CRED"
+      }
+    }
+  ],
+  "sale_unit": "UN"
+}

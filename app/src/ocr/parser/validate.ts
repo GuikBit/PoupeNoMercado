@@ -22,6 +22,12 @@ export interface ValidationResult {
   penalty: number;
 }
 
+/**
+ * Piso da razão faixa/base aceita sem penalidade (V11). Calibrado nos 51 casos
+ * reais de 08/08/2026, cujo desconto mais profundo foi 22,8% (razão 0,772).
+ */
+const MIN_TIER_RATIO = 0.5;
+
 /** Extrai o tamanho da embalagem do nome ("750ML", "1LT", "120G") na unidade base (L ou KG). */
 function packageSizeFromName(name: string): { amount: number; unit: 'KG' | 'L' } | null {
   const m = /(\d+(?:[,.]\d+)?)\s*(ML|LT|L|KG|G)\b/.exec(name);
@@ -135,6 +141,17 @@ export function validateReading(input: ValidationInput): ValidationResult {
         penalty += 0.1;
       }
     }
+  }
+
+  // V11 — desconto de faixa implausivelmente profundo.
+  // Nos 51 casos reais de 08/08/2026 o maior desconto de faixa foi 22,8%; o
+  // limiar de 50% deixa margem de 2×. Pega erro de dígito do OCR ("R$ 8,19"
+  // lido como "R$ 3,19"): o valor errado deixa de sair como número confiante e
+  // passa a campo fraco — princípio nº 5, admitir incerteza em vez de chutar.
+  if (pricing.tiers.some((t) => t.priceCents < pricing.basePriceCents * MIN_TIER_RATIO)) {
+    failedRules.push('V11');
+    penalty += 0.25;
+    weakFields.push('tiers');
   }
 
   return { rejected, failedRules, weakFields, penalty: Math.min(1, penalty) };

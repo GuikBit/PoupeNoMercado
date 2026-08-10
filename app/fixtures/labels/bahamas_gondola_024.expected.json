@@ -1,0 +1,23 @@
+{
+  "raw_name": "CALDO KNORR 57G BACON",
+  "base_price_cents": 359,
+  "tiers": [
+    {
+      "min_qty": 1,
+      "price_cents": 329,
+      "condition": {
+        "kind": "store_card",
+        "card_name": "BAHAMAS CRED"
+      }
+    },
+    {
+      "min_qty": 3,
+      "price_cents": 329,
+      "condition": {
+        "kind": "none"
+      }
+    }
+  ],
+  "sale_unit": "UN",
+  "internal_code": "16458"
+}

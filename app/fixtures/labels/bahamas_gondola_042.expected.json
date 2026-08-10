@@ -1,0 +1,14 @@
+{
+  "raw_name": "AGUAMT",
+  "base_price_cents": 179,
+  "tiers": [
+    {
+      "min_qty": 12,
+      "price_cents": 169,
+      "condition": {
+        "kind": "none"
+      }
+    }
+  ],
+  "sale_unit": "UN"
+}

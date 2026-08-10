@@ -1,0 +1,23 @@
+{
+  "raw_name": "FELAO VERMELHO RECANTO TIPO 1 KG",
+  "base_price_cents": 749,
+  "tiers": [
+    {
+      "min_qty": 1,
+      "price_cents": 719,
+      "condition": {
+        "kind": "store_card",
+        "card_name": "BAHAMAS CRED"
+      }
+    },
+    {
+      "min_qty": 3,
+      "price_cents": 719,
+      "condition": {
+        "kind": "none"
+      }
+    }
+  ],
+  "sale_unit": "KG",
+  "internal_code": "78498"
+}

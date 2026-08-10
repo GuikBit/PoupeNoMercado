@@ -42,10 +42,12 @@ sempre que a quantidade muda.
 
 | | |
 |---|---|
-| **Fase** | Fase 0 — Etapas 0 e 1 ✅ concluídas e validadas em device (Galaxy S24 Ultra) |
-| **Próximo passo** | Etapa 2 🚪: ida ao mercado (60 casos: A=15, B=20, C=15, D=5, adversariais=5) → `npm run analyze:lab` → decisão do motor (ADR-002) |
-| **Código escrito** | App base (Expo SDK 57, Router, Tamagui, VisionCamera v4, Jest, CI) · parser v1 completo com T1–T14 · domínio de preço · adaptadores ML Kit (módulo local) e Cloud Vision · detector OpenCV · tela do Laboratório com SQLite e export |
-| **Decisão pendente** | Qual motor de OCR usar (será decidida por medição, não no papel) |
+| **Fase** | Fase 0 — Etapas 0, 1 e 2 ✅ · Etapa 3 parcial (parser ✅, pré-processamento ⏳) |
+| **Corpus** | 51 casos reais de campo (08/08/2026) em `app/fixtures/lab-2026-08-08.cases.json` + 51 imagens em `app/fixtures/labels/` |
+| **Onde está** | Cloud Vision: M1 A+B **100%**, M2 92,3%, M3 **0%**. ML Kit: M1 A+B 62,5%, M3 **0%**, p95 266 ms |
+| **Próximo passo** | Pré-processamento do preço em fonte grande (binarização adaptativa + upscale 2×) — o ML Kit perde os dígitos do preço em negrito. **Exige ciclo no device**: o `analyze:lab` re-roda o parser, não o motor |
+| **Decisão pendente** | ADR-002 (qual motor). Em aberto de propósito: o Cloud Vision é preciso mas viola o offline-first e falha M6 por 3,4×; o ML Kit é rápido e offline mas depende do pré-processamento. Decidir só com o item acima medido |
+| **Leitura obrigatória** | `docs/resultados/lab-2026-08-10.md` — o que a coleta revelou, inclusive 9 gabaritos que vieram errados |
 
 ### Notas da Etapa 1
 

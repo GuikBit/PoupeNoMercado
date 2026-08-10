@@ -1,0 +1,14 @@
+{
+  "raw_name": "BALDE PLASTEX ECO 10 LITROS",
+  "base_price_cents": 1438,
+  "tiers": [
+    {
+      "min_qty": 3,
+      "price_cents": 1228,
+      "condition": {
+        "kind": "none"
+      }
+    }
+  ],
+  "sale_unit": "UN"
+}

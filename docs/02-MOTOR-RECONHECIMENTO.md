@@ -518,6 +518,12 @@ Executadas em ordem. Cada falha registra em `failedRules` e aplica penalidade.
 | V8 | `saleUnit === 'UN'` e preço > R$ 500,00 | −0.15 |
 | V9 | Nome com ≥ 3 caracteres e ≥ 1 vogal | −0.20, marca `rawName` como fraco |
 | V10 | `labelDate` não está mais de 90 dias no passado | −0.10 |
+| V11 | Toda `tier.priceCents ≥ 50% de basePriceCents` | −0.25, marca `tiers` como fraco |
+
+> **V11 — origem.** Calibrada na coleta de 08/08/2026 (`docs/resultados/lab-2026-08-10.md`):
+> nos 31 tiers reais o desconto mais profundo foi de 22,8%, então o limiar de 50%
+> tem margem de 2×. Existe para conter erro de dígito do OCR — "R$ 8,19" lido
+> como "R$ 3,19" deixa de sair como número confiante e vira campo fraco.
 
 ### 7.2 Cálculo do score
 

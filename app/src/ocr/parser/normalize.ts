@@ -50,6 +50,11 @@ export function normalizeText(raw: string): string {
   t = t.replace(/\s+/g, ' ').trim();
   // Decimal com espaço espúrio do OCR: "8, 19" / "9 . 29" → "8,19" / "9,29".
   t = t.replace(/(\d)\s*[,.]\s+(\d{2})\b/g, '$1,$2');
+  // ⚠️ NÃO reconstruir o separador decimal ausente ("RS 648" → "R$ 6,48").
+  // Testado na coleta de 08/08/2026: recuperou 1 caso e transformou 2
+  // abstenções em preço errado — o número sem vírgula costuma ser o mesmo que
+  // o OCR já mutilou, então "reconstruí-lo" fabrica um preço plausível e
+  // falso. Princípio nº 5: abster é melhor que chutar.
   // Variantes de OCR do símbolo monetário — "RS", "R5", "B$", "R $" — viram
   // "R$" quando seguidas de um valor com centavos. As âncoras DE/POR e o
   // padrão MONEY dependem do símbolo canônico.

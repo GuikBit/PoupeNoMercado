@@ -1,0 +1,14 @@
+{
+  "raw_name": "TORRADA BAUDI",
+  "base_price_cents": 579,
+  "tiers": [
+    {
+      "min_qty": 3,
+      "price_cents": 529,
+      "condition": {
+        "kind": "none"
+      }
+    }
+  ],
+  "sale_unit": "UN"
+}

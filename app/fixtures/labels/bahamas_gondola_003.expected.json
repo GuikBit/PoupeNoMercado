@@ -1,0 +1,22 @@
+{
+  "raw_name": "LAMPADA LED TASCHIBRA 20W 650UK",
+  "base_price_cents": 939,
+  "tiers": [
+    {
+      "min_qty": 1,
+      "price_cents": 819,
+      "condition": {
+        "kind": "store_card",
+        "card_name": "BAHAMAS CRED"
+      }
+    },
+    {
+      "min_qty": 3,
+      "price_cents": 819,
+      "condition": {
+        "kind": "none"
+      }
+    }
+  ],
+  "sale_unit": "UN"
+}

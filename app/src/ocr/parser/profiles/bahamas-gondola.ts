@@ -20,15 +20,46 @@ import {
 } from './helpers';
 import type { Extraction, ExtractionContext, Extractor } from './types';
 
-/** Faixa do cartão usa a fraseologia "A PARTIR DE 1 UNID." — não é faixa comum. */
+/**
+ * Faixa do cartão usa a fraseologia abreviada "A PARTIR DE 1 UNID." — não é
+ * faixa comum.
+ *
+ * ⚠️ O lookahead é essencial: o cartaz escreve a faixa NORMAL como
+ * "A PARTIR DE 3 UNIDADES PAGUE". Sem `(?!ADE)` essa linha era classificada
+ * como faixa de cartão e descartada, perdendo a faixa inteira.
+ */
+const CARD_QTY = /A\s*PARTIR\s*DE\s*(\d+)\s*UNID(?!ADE)/;
+
 function isCardTierText(text: string): boolean {
-  return /A\s*PARTIR\s*DE\s*\d+\s*UNID/.test(text);
+  return CARD_QTY.test(text);
+}
+
+/**
+ * Texto a partir da âncora do cartão. O OCR funde a linha do cartão com a de
+ * medida num bloco só ("NESTA EMBALAGEM 1KG R$ 478,00 OU NO BAHAMAS CRED a
+ * partir de 1 unid. R$ 2,39") — descartar o bloco por ser linha de medida
+ * jogava fora a faixa do cartão junto.
+ */
+function cardTextAfterAnchor(text: string): string {
+  const m = RE.STORE_CARD.exec(text);
+  return m ? text.slice(m.index) : text;
 }
 
 /** "DE R$" com as corrupções comuns do OCR ("DE BS", "DE RS", "DE B$"). */
 const BASE_FROM = /\bDE\s*(R\s?\$|B\$|[RB]S\b)/;
 /** Variante "COMPRANDO 1 R$ 6,49 A UNIDADE" vista em campo. */
 const BASE_COMPRANDO = /\bCOMPRANDO\s*1\b/;
+
+/**
+ * Preço truncado pelo OCR: o separador sobreviveu mas a parte inteira sumiu
+ * ("De R$ ,99 a Unidade", "POR: R$ .49"). O ML Kit erra assim justamente no
+ * dígito em fonte grande.
+ *
+ * Quando isso acontece na linha da âncora, a busca espacial encontraria o
+ * preço da FAIXA e o devolveria como preço base — errado e plausível, que é o
+ * pior tipo de erro. Melhor abster (princípio nº 5).
+ */
+const TRUNCATED_PRICE = /(?:R\$|\s|^)\s*[,.]\d{2}(?!\d)/;
 
 /**
  * Dinheiro do preço base numa linha, cortando a parte de medida quando o OCR
@@ -61,11 +92,22 @@ function extractBasePrice(items: PositionedText[]): {
     const cents = basePriceFromText(anchor.text);
     if (cents !== null) return { cents, anchor };
   }
+  // Âncora com preço truncado: o dígito grande se perdeu no OCR. Não procurar
+  // outro valor — o que estiver por perto é a faixa, não o base.
+  if (sorted.some((a) => TRUNCATED_PRICE.test(a.text))) {
+    return { cents: null, anchor: null };
+  }
+
   // Âncora sem valor na própria linha (OCR quebrou "DE R$" / "9,29 A UNIDADE"
   // em linhas separadas): busca espacial à direita e abaixo.
   for (const anchor of sorted) {
+    // Tolerância de "mesma linha" proporcional à altura da âncora: um valor
+    // absoluto (0.04) só serve para texto pequeno. Em "COMPRANDO 1 R$" com
+    // 0.16 de altura, o preço ao lado ficava fora da tolerância e também fora
+    // da busca "abaixo" (por sobrepor a âncora) — um ponto cego geométrico.
+    const lineTolerance = Math.max(0.04, anchor.box.h * 0.6);
     const near = [
-      ...candidatesRightOf(items, anchor.box, 0.6, 0.04),
+      ...candidatesRightOf(items, anchor.box, 0.6, lineTolerance),
       ...candidatesBelow(items, anchor.box, 0.2),
     ].filter((c) => !RE.TIER.test(c.text) && !RE.STORE_CARD.test(c.text));
     for (const candidate of near) {
@@ -117,15 +159,17 @@ function extractCardTier(
   const cardAnchor = items.find((i) => RE.STORE_CARD.test(i.text));
   if (!cardAnchor) return null;
 
-  // A região do cartão: a própria âncora e o que está logo abaixo dela.
-  const region = [cardAnchor, ...candidatesBelow(items, cardAnchor.box, 0.3)].filter(
-    (c) => !isMeasureLine(c.text),
-  );
+  // A região do cartão: a própria âncora (cortada no "BAHAMAS CRED", para
+  // sobreviver à fusão com a linha de medida) e o que está logo abaixo dela.
+  const region = [
+    { ...cardAnchor, text: cardTextAfterAnchor(cardAnchor.text) },
+    ...candidatesBelow(items, cardAnchor.box, 0.3).filter((c) => !isMeasureLine(c.text)),
+  ];
 
   let minQty = 1;
   let priceCents: number | null = null;
   for (const item of region) {
-    const qtyMatch = /A\s*PARTIR\s*DE\s*(\d+)\s*UNID/.exec(item.text);
+    const qtyMatch = CARD_QTY.exec(item.text);
     if (qtyMatch && qtyMatch[1] !== undefined) {
       minQty = Number(qtyMatch[1]);
       used.push(item);

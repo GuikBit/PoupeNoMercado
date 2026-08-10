@@ -1,0 +1,23 @@
+{
+  "raw_name": "EMPANADO NAT P EHO FRANO 4I0G",
+  "base_price_cents": 2049,
+  "tiers": [
+    {
+      "min_qty": 1,
+      "price_cents": 1899,
+      "condition": {
+        "kind": "store_card",
+        "card_name": "BAHAMAS CRED"
+      }
+    },
+    {
+      "min_qty": 3,
+      "price_cents": 1899,
+      "condition": {
+        "kind": "none"
+      }
+    }
+  ],
+  "sale_unit": "UN",
+  "internal_code": "167271"
+}

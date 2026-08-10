@@ -1,0 +1,23 @@
+{
+  "raw_name": "SAIG DURIOS NCHO 1836",
+  "base_price_cents": 1988,
+  "tiers": [
+    {
+      "min_qty": 1,
+      "price_cents": 1778,
+      "condition": {
+        "kind": "store_card",
+        "card_name": "BAHAMAS CRED"
+      }
+    },
+    {
+      "min_qty": 3,
+      "price_cents": 1778,
+      "condition": {
+        "kind": "none"
+      }
+    }
+  ],
+  "sale_unit": "UN",
+  "internal_code": "167334"
+}

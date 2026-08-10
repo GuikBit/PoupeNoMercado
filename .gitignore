@@ -37,6 +37,15 @@ coverage.html
 .env.*
 !.env.example
 
+# ── Material fora do escopo do projeto ────────────────────
+Encomendas/
+
+# Índices soltos exportados do Laboratório pelo celular. O conteúdo canônico
+# (com o OCR bruto) vive em app/fixtures/lab-*.cases.json — estes são cópias
+# parciais que chegam pelo compartilhamento do app.
+Etiquetas/index*.json
+docs/resultados/index*.json
+
 # ── Editores / SO ─────────────────────────────────────────
 .vscode/
 .idea/

@@ -1,0 +1,23 @@
+{
+  "raw_name": "LEG CONPOSTO MARIA TRADICIONAL PET OMIL",
+  "base_price_cents": 1899,
+  "tiers": [
+    {
+      "min_qty": 1,
+      "price_cents": 1799,
+      "condition": {
+        "kind": "store_card",
+        "card_name": "BAHAMAS CRED"
+      }
+    },
+    {
+      "min_qty": 3,
+      "price_cents": 1799,
+      "condition": {
+        "kind": "none"
+      }
+    }
+  ],
+  "sale_unit": "UN",
+  "internal_code": "71551"
+}

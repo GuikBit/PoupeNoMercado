@@ -1,0 +1,29 @@
+{
+  "raw_name": "DROP'S HALL'S UN",
+  "base_price_cents": 219,
+  "tiers": [
+    {
+      "min_qty": 1,
+      "price_cents": 169,
+      "condition": {
+        "kind": "store_card",
+        "card_name": "BAHAMAS CRED"
+      }
+    },
+    {
+      "min_qty": 3,
+      "price_cents": 189,
+      "condition": {
+        "kind": "none"
+      }
+    },
+    {
+      "min_qty": 12,
+      "price_cents": 169,
+      "condition": {
+        "kind": "none"
+      }
+    }
+  ],
+  "sale_unit": "UN"
+}

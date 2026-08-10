@@ -47,7 +47,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "jest",
-    "analyze:lab": "tsx scripts/analyze-lab.ts"
+    "analyze:lab": "tsx scripts/analyze-lab.ts",
+    "lab:failures": "tsx scripts/lab-failures.ts",
+    "lab:gate": "tsx scripts/lab-gate.ts"
   },
   "private": true
 }

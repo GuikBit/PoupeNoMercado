@@ -1,0 +1,22 @@
+{
+  "raw_name": "LAMPADA LED TASCHIBRA ZUW 6500K",
+  "base_price_cents": 939,
+  "tiers": [
+    {
+      "min_qty": 3,
+      "price_cents": 819,
+      "condition": {
+        "kind": "none"
+      }
+    },
+    {
+      "min_qty": 1,
+      "price_cents": 819,
+      "condition": {
+        "kind": "store_card",
+        "card_name": "BAHAMAS CRED"
+      }
+    }
+  ],
+  "sale_unit": "UN"
+}
