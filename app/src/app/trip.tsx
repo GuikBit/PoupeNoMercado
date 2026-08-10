@@ -6,7 +6,7 @@
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Button, Paragraph, ScrollView, Separator, XStack, YStack } from 'tamagui';
+import { Button, Paragraph, ScrollView, XStack, YStack } from 'tamagui';
 
 import { appRepoContext } from '../db/client';
 import { useTripStore } from '../state/tripStore';
@@ -82,7 +82,10 @@ export default function TripScreen() {
     <YStack flex={1}>
       {/* pb precisa caber o rodapé fixo INTEIRO (dois botões quando há desfazer),
           senão ele come o último item da lista. */}
-      <ScrollView flex={1} contentContainerStyle={{ p: '$3', gap: '$3', pb: 180 }}>
+      <ScrollView
+      flex={1}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ p: '$3', gap: '$3', pb: 180 }}>
         <TotalBar budget={budget} itemCount={lines.length} />
 
         <XStack items="center" justify="space-between" p="$2">
@@ -137,19 +140,25 @@ export default function TripScreen() {
           </YStack>
         ))}
 
-        <Separator />
-        <Button onPress={() => router.push('/summary')}>Finalizar compra</Button>
       </ScrollView>
 
+      {/* Rodapé fixo. "Finalizar" mora AQUI, não no fim da lista: com muitos
+          itens escaneados ele ficava longe demais e por baixo deste próprio
+          rodapé — impossível fechar a compra sem rolar até o fim. */}
       <YStack position="absolute" b={0} l={0} r={0} gap="$2" p="$3" bg="$background">
         {lastAddedId ? (
           <Button size="$3" onPress={undoLastAdd}>
             Desfazer último item
           </Button>
         ) : null}
-        <Button size="$6" theme="accent" onPress={() => router.push('/scan')}>
-          Escanear etiqueta
-        </Button>
+        <XStack gap="$2">
+          <Button flex={1} size="$6" onPress={() => router.push('/summary')}>
+            Finalizar
+          </Button>
+          <Button flex={2} size="$6" theme="accent" onPress={() => router.push('/scan')}>
+            Escanear etiqueta
+          </Button>
+        </XStack>
       </YStack>
     </YStack>
   );

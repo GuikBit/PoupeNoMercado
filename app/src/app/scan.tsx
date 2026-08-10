@@ -177,7 +177,10 @@ export default function ScanScreen() {
     const reading = etapa.resultado.reading;
     if (!reading) return null;
     return (
-      <ScrollView flex={1} contentContainerStyle={{ pb: '$8' }}>
+      <ScrollView
+      flex={1}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ pb: '$8' }}>
         <QuantityStepper
           quantity={quantidade}
           saleUnit={reading.pricing.saleUnit}

@@ -62,7 +62,10 @@ export default function HistoryScreen() {
   }
 
   return (
-    <ScrollView flex={1} contentContainerStyle={{ p: '$3', gap: '$3' }}>
+    <ScrollView
+      flex={1}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ p: '$3', gap: '$3' }}>
       {aviso ? (
         <YStack p="$3" bg="$green2" rounded="$4">
           <Paragraph size="$3" color="$green11">

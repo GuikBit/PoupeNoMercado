@@ -47,7 +47,10 @@ export default function SummaryScreen() {
     : [];
 
   return (
-    <ScrollView flex={1} contentContainerStyle={{ p: '$3', gap: '$3', pb: '$10' }}>
+    <ScrollView
+      flex={1}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ p: '$3', gap: '$3', pb: '$10' }}>
       <YStack items="center" gap="$1" p="$4" bg="$color2" rounded="$4">
         <Paragraph size="$3" color="$color10">
           Total da compra

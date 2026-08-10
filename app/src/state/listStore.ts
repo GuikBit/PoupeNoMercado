@@ -30,6 +30,8 @@ export interface ListState {
   open(listId: string | null): void;
   create(name: string, budgetCents?: number | null): ShoppingListRow | null;
   rename(listId: string, name: string): void;
+  /** Teto de gasto da lista. `null` remove o teto. */
+  setBudget(listId: string, budgetCents: number | null): void;
   remove(listId: string): void;
   addItem(name: string): void;
   toggle(itemId: string, checked: boolean): void;
@@ -77,6 +79,17 @@ export const useListStore = create<ListState>((set, get) => ({
   rename(listId, name) {
     const ctx = requireCtx(get().ctx);
     updateList(ctx, listId, { name });
+    get().reload();
+  },
+
+  /**
+   * O teto pertence à LISTA, não à compra: a compra iniciada a partir dela
+   * herda o valor. Assim o mesmo teto vale toda vez que a lista é usada, sem
+   * precisar redigitar.
+   */
+  setBudget(listId, budgetCents) {
+    const ctx = requireCtx(get().ctx);
+    updateList(ctx, listId, { budgetCents });
     get().reload();
   },
 

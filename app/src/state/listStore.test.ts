@@ -33,6 +33,42 @@ describe('listas', () => {
   });
 });
 
+describe('teto de gasto da lista', () => {
+  it('nasce sem teto', () => {
+    const lista = store().create('Mensal')!;
+    expect(lista.budgetCents).toBeNull();
+  });
+
+  it('define, altera e remove', () => {
+    const lista = store().create('Mensal')!;
+
+    store().setBudget(lista.id, 20_000);
+    expect(store().lists[0]?.budgetCents).toBe(20_000);
+
+    store().setBudget(lista.id, 15_000);
+    expect(store().lists[0]?.budgetCents).toBe(15_000);
+
+    store().setBudget(lista.id, null);
+    expect(store().lists[0]?.budgetCents).toBeNull();
+  });
+
+  it('o teto é por lista — mexer numa não afeta a outra', () => {
+    const a = store().create('Mensal')!;
+    const b = store().create('Feira')!;
+    store().setBudget(a.id, 30_000);
+
+    expect(store().lists.find((l) => l.id === a.id)?.budgetCents).toBe(30_000);
+    expect(store().lists.find((l) => l.id === b.id)?.budgetCents).toBeNull();
+  });
+
+  it('renomear não apaga o teto', () => {
+    const lista = store().create('Mensal')!;
+    store().setBudget(lista.id, 25_000);
+    store().rename(lista.id, 'Mensal Agosto');
+    expect(store().lists[0]?.budgetCents).toBe(25_000);
+  });
+});
+
 describe('itens', () => {
   beforeEach(() => {
     const lista = store().create('Mensal')!;

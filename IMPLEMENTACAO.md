@@ -259,6 +259,12 @@ sem abrir o app. — ✅ `cart.test.ts` faz exatamente isso no último bloco.
 
 ### 5.2 Telas
 - [x] Home: listas + botão "Iniciar compra"
+      ⚠️ **O teto de gasto pertence à LISTA**, não à compra (ajuste de
+      10/08/2026). A compra iniciada por uma lista herda o teto dela; a
+      "compra rápida" não tem teto. Ter dois lugares definindo a mesma coisa
+      era o que embaralhava a hierarquia das telas. O teto herdado é
+      **congelado** no início da compra: mudar a lista no meio do caminho não
+      reescreve o combinado.
 - [x] Lista: criar, editar, reordenar, marcar
       (categorizar fica para depois — a coluna existe no schema)
 - [x] **Compra ativa:** total grande, barra de orçamento, itens escaneados

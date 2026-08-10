@@ -58,7 +58,10 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView flex={1} contentContainerStyle={{ p: '$3', gap: '$3' }}>
+    <ScrollView
+      flex={1}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ p: '$3', gap: '$3' }}>
       <Linha
         titulo="Cartão da loja"
         descricao="Começar toda compra nova já usando o cartão da loja. Muda o preço aplicado nas faixas condicionadas."
