@@ -583,6 +583,24 @@ o produto.
 
 No backend, a mesma busca usa `pg_trgm` com `unaccent` (ver `03-MODELO-DADOS.md`).
 
+> **Contenção, não interseção** (decidido em 10/08/2026 ao implementar
+> `src/domain/matching.ts`). O passo 2 diz "similaridade por trigrama"; medir
+> isso como Jaccard — o `similarity()` do pg_trgm — **não funciona aqui**. A
+> lista traz termo curto e genérico ("vinagre") e a etiqueta traz nome longo e
+> específico ("VINAGRE DE ALCOOL PEIXE 750ML"); eles compartilham pouco da
+> *união*, então o score afunda mesmo sendo o mesmo produto.
+>
+> O análogo correto é o `word_similarity()` do pg_trgm. Mas contenção sobre a
+> string inteira reintroduz exatamente o falso positivo que esta seção teme
+> ("SAL" ficaria contido em "SALGADINHO"), então a contenção é medida **palavra
+> a palavra**: cada palavra do termo da lista busca a melhor correspondente no
+> nome escaneado, e o score é a média ponderada pelo comprimento da palavra
+> (palavra longa pesa mais que "DE").
+>
+> Quando o backend implementar a mesma busca, precisa usar `word_similarity()`
+> com a mesma decomposição — senão app e servidor darão respostas diferentes
+> para a mesma lista.
+
 ---
 
 ## 9. Estratégia de testes

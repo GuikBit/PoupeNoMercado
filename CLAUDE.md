@@ -42,12 +42,13 @@ sempre que a quantidade muda.
 
 | | |
 |---|---|
-| **Fase** | Fase 0 — Etapas 0, 1 e 2 ✅ · Etapa 3 parcial (parser ✅, pré-processamento ⏳) |
+| **Fase** | Fase 0 ✅ encerrada (Etapas 0–3) · Fase 1: Etapa 4 ✅ · próxima é a Etapa 5 (app MVP) |
 | **Corpus** | 51 casos reais de campo (08/08/2026) em `app/fixtures/lab-2026-08-08.cases.json` + 51 imagens em `app/fixtures/labels/` |
 | **Onde está** | Cloud Vision: M1 A+B **100%**, M2 92,3%, M3 **0%**. ML Kit: M1 A+B 62,5%, M3 **0%**, p95 266 ms |
 | **Pré-processamento** | ❌ testado e descartado (8 variantes × 51 casos). A prescrição original — binarização adaptativa + upscale 2× — é **metade** da linha de base. Teto teórico com seleção perfeita: 84,4% em A+B |
-| **Próximo passo** | 🚪 **Cenário 4** de `docs/06` §6 disparado: parser e pré-processamento exercidos, o limite é o motor. Escolher o escalonamento — PaddleOCR/ONNX · VLM de fallback · entrada manual assistida · ou o híbrido ML Kit+abstenção |
-| **Decisão pendente** | ADR-002 (qual motor). O Cloud Vision acerta tudo mas viola o offline-first e falha M6 por 3,4×; o ML Kit é rápido, offline e **nunca erra com convicção** (M3 0%, abstenção 85,7%), mas só acerta 62,5% |
+| **Domínio** | `cart` · `pricing` · `budget` · `matching` · `acceptance` — puros, sem I/O, 98,9% de cobertura. Uma compra inteira roda em teste sem device |
+| **Próximo passo** | Etapa 5 — app MVP: ligar a UI ao domínio (scan → confirmar → carrinho → orçamento) |
+| **ADR-002** | ✅ decidido: **ML Kit titular com confirmação humana obrigatória**; Cloud Vision é escalonamento oportunista, nunca no caminho crítico. Não existe faixa de confiança em que o ML Kit preencha sozinho e valha a pena (zero erro só a 0,75, cobrindo 8,9%) |
 | **Leitura obrigatória** | `docs/resultados/lab-2026-08-10.md` — o que a coleta revelou, inclusive 9 gabaritos que vieram errados |
 
 ### Notas da Etapa 1

@@ -198,17 +198,29 @@ resultados lado a lado, preenche o gabarito e o caso é salvo.
 
 Tudo em TypeScript puro, sem I/O — roda em teste sem device.
 
-- [ ] `src/domain/cart.ts` — adicionar/remover/alterar item, total, progresso
-      contra o orçamento
-- [ ] Recálculo automático ao mudar quantidade (usa `resolvePrice`)
-- [ ] Dica de próxima faixa: *"leve mais 2 e economize R$ 0,60 cada"*
-- [ ] Fluxo de peso: item KG recebe peso decimal, não quantidade inteira
-- [ ] `src/domain/matching.ts` — casamento com a lista (§8), limiar 0,75
-- [ ] `src/domain/budget.ts` — estados verde / amarelo (85%) / vermelho
-- [ ] Cobertura de testes ≥ 90% em `src/domain/`
+- [x] `src/domain/cart.ts` — adicionar/remover/alterar item, total, progresso
+      contra o orçamento. Funções puras, carrinho imutável.
+- [x] Recálculo automático ao mudar quantidade (usa `resolvePrice`)
+      — o carrinho guarda a `PricingPolicy`, **nunca** um preço unitário
+      congelado; o preço é derivado no `summarize` a cada leitura.
+- [x] Dica de próxima faixa: *"leve mais 2 e economize R$ 0,60 cada"* (`TierHint`)
+- [x] Fluxo de peso: item KG recebe peso decimal; UN recusa fracionário
+- [x] `src/domain/matching.ts` — casamento com a lista (§8), limiar 0,75
+      ⚠️ Jaccard não serve: termo curto da lista contra nome longo da etiqueta
+      afunda o score. Usa **contenção palavra a palavra** (análogo ao
+      `word_similarity()` do pg_trgm). Ver nota em `docs/02` §8.
+- [x] `src/domain/budget.ts` — estados verde / amarelo (85%) / vermelho
+- [x] Cobertura de testes em `src/domain/`: **98,9% stmts · 95,8% branches**
+      (meta ≥ 90%)
 
 **✅ Concluída quando:** é possível simular uma compra inteira por testes,
-sem abrir o app.
+sem abrir o app. — ✅ `cart.test.ts` faz exatamente isso no último bloco.
+
+> **Decisão de desenho que vale saber:** o mesmo produto **funde** ao ser
+> adicionado (por código interno, EAN ou nome normalizado). Escanear três vezes
+> o mesmo item precisa alcançar a faixa "a partir de 3" — é o diferencial do
+> produto; linhas separadas jogariam isso fora em silêncio. A fusão exige
+> `saleUnit` igual: "PICANHA KG" e "PICANHA UN" são coisas diferentes.
 
 ---
 

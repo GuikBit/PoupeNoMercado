@@ -9,6 +9,7 @@
  */
 import type { PriceTier } from '../domain/pricing';
 import type { LabelReading } from '../domain/reading';
+import { trigramSimilarity } from '../domain/similarity';
 import type { EngineRun, LabCase } from './types';
 
 export type ParseRunFn = (
@@ -35,35 +36,10 @@ export interface CaseEvaluation {
   nameSimilarity?: number;
 }
 
-/** Trigramas por palavra, com padding — mesma ideia do pg_trgm. */
-function trigrams(text: string): Set<string> {
-  const grams = new Set<string>();
-  const words = text
-    .toUpperCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .split(/[^A-Z0-9]+/)
-    .filter((w) => w.length > 0);
-  for (const word of words) {
-    const padded = `  ${word} `;
-    for (let i = 0; i + 3 <= padded.length; i++) {
-      grams.add(padded.slice(i, i + 3));
-    }
-  }
-  return grams;
-}
-
-export function trigramSimilarity(a: string, b: string): number {
-  const ga = trigrams(a);
-  const gb = trigrams(b);
-  if (ga.size === 0 && gb.size === 0) return 1;
-  let shared = 0;
-  for (const g of ga) {
-    if (gb.has(g)) shared++;
-  }
-  const union = ga.size + gb.size - shared;
-  return union === 0 ? 0 : shared / union;
-}
+// A similaridade vive no domínio (src/domain/similarity.ts) — é usada tanto
+// aqui quanto pelo casamento com a lista. Re-exportada para não quebrar quem
+// já importava daqui.
+export { trigramSimilarity };
 
 function tierKey(tier: PriceTier): string {
   const cond = tier.condition.kind === 'storeCard' ? 'card' : 'none';
