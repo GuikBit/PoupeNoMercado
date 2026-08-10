@@ -163,12 +163,14 @@ resultados lado a lado, preenche o gabarito e o caso é salvo.
 
 - [x] Corrigir os erros priorizados na Etapa 2 — 4 defeitos do parser, todos de
       geometria ou fraseologia (ver `docs/resultados/lab-2026-08-10.md` §9)
-- [ ] **Pré-processamento do preço em fonte grande**: binarização adaptativa,
-      upscale 2×, correção de inclinação
-      ⚠️ O plano original mirava o **Tipo C**; a coleta mostrou que o Tipo C é o
-      **melhor** tipo (100%/84,6%) e que o alvo real é o dígito em fonte grande,
-      onde o ML Kit falha em 9 casos. **Exige ciclo no device** — o `analyze:lab`
-      re-roda o parser, não o motor.
+- [x] **Pré-processamento** — testado e **descartado**. 8 variantes × 51 casos
+      (408 execuções) via o modo Lote do Laboratório.
+      ⚠️ **A prescrição original era o pior caminho:** "binarização adaptativa +
+      upscale 2×" dá **34,4% em A+B contra 62,5% da linha de base**. Binarizar
+      destrói a leitura do ML Kit.
+      A melhor variante (`stretch`) sobe para 65,6% — 2 casos líquidos em 45,
+      dentro do ruído. **Teto teórico com seleção perfeita: 84,4%**, ainda abaixo
+      do limiar de 85%. Nenhum filtro de imagem resgata o ML Kit.
 - [x] Ajustar limiares de confiança com base nos dados reais — **V11** (razão
       faixa/base ≥ 50%), calibrada nos 31 tiers reais (desconto máximo 22,8%)
 - [x] Gate de CI: `npm run lab:gate` falha se a acurácia cair abaixo do
@@ -178,8 +180,15 @@ resultados lado a lado, preenche o gabarito e o caso é salvo.
 **✅ Concluída quando:** M1 ≥ 95% (A,B) e M3 ≤ 1% contra o gabarito.
 
 > **Estado:** atingida no **Cloud Vision** (M1 A+B **100,0%**, M3 **0,0%**).
-> **Não** atingida no ML Kit (M1 A+B 62,5%, M3 0,0%) — o que falta é motor, não
-> parser: 9 dos 13 erros são dígito perdido no OCR, não extração.
+> **Não** atingida no ML Kit (M1 A+B 62,5%, M3 0,0%), e agora se sabe que não
+> será: o limite é o motor. Parser e pré-processamento foram ambos exercidos.
+>
+> 🚪 **Isso dispara o Cenário 4 de `docs/06` §6** — "M1 < 85% em A e B mesmo
+> após ajuste de pré-processamento e parser". Escalonamento previsto:
+> (1) PaddleOCR mobile via ONNX · (2) VLM como fallback de baixa confiança ·
+> (3) reposicionar para entrada manual assistida.
+> Ver `docs/resultados/lab-2026-08-10.md` §9 — inclusive uma quarta opção que
+> os dados sugerem e a spec não lista.
 
 ---
 

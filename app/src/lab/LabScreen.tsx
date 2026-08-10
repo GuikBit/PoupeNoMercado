@@ -4,11 +4,14 @@
  * gabarito + veredito humano e persiste o caso completo no SQLite.
  */
 import { launchImageLibraryAsync } from 'expo-image-picker';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Button, Input, Paragraph, ScrollView, Spinner, XStack, YStack } from 'tamagui';
 
 import { registerDefaultEngines } from '../ocr/engines/bootstrap';
+import { getEngine } from '../ocr/engines/registry';
 import type { ImageRef } from '../ocr/types';
+import { type BatchProgress, runBatch } from './batch';
+import { exportBatchReport } from './batchExport';
 import { CaptureView } from './CaptureView';
 import { Choice } from './Choice';
 import { openLabDb } from './db';
@@ -78,6 +81,47 @@ export function LabScreen() {
   const [draft, setDraft] = useState<GroundTruthDraft>(EMPTY_DRAFT);
   const [bestEngine, setBestEngine] = useState<VerdictEngine>('none');
   const [note, setNote] = useState('');
+  const [batch, setBatch] = useState<BatchProgress | null>(null);
+  const cancelBatch = useRef(false);
+
+  /**
+   * Reprocessa todas as imagens já coletadas sob cada variante de
+   * pré-processamento. Só ML Kit: o Cloud Vision é a referência (já em 100%),
+   * re-executá-lo custaria dinheiro e não responderia nada.
+   */
+  async function handleBatch() {
+    const cases = repo.list();
+    if (cases.length === 0) return;
+    cancelBatch.current = false;
+    setError(null);
+    setBatch({
+      doneUnits: 0,
+      totalUnits: 0,
+      caseIndex: 0,
+      totalCases: cases.length,
+      variant: 'none',
+    });
+    try {
+      const engine = getEngine('mlkit');
+      const startedAt = new Date().toISOString();
+      const report = await runBatch(cases, {
+        engineId: engine.id,
+        recognizeFn: (image) => engine.recognize(image),
+        onProgress: setBatch,
+        shouldCancel: () => cancelBatch.current,
+        startedAt,
+      });
+      const written = await exportBatchReport(report, startedAt);
+      setError(
+        `Lote concluído: ${report.cases.length} casos × ${report.variants.length} variantes ` +
+          `(${(written.sizeBytes / 1048576).toFixed(1)} MB)`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBatch(null);
+    }
+  }
 
   async function process(photo: ImageRef) {
     setBusy(true);
@@ -160,16 +204,48 @@ export function LabScreen() {
           bg="rgba(255,255,255,0.92)"
           z={10}
         >
-          <Button size="$3" onPress={importFromGallery} disabled={busy}>
-            Importar da galeria
+          <Button size="$2" onPress={importFromGallery} disabled={busy || batch !== null}>
+            Importar
           </Button>
-          <Button size="$3" onPress={handleExport} disabled={busy || savedCount === 0}>
+          <Button size="$2" onPress={handleExport} disabled={busy || batch !== null || savedCount === 0}>
             Exportar
+          </Button>
+          <Button
+            size="$2"
+            onPress={handleBatch}
+            disabled={busy || batch !== null || savedCount === 0}
+          >
+            Lote
           </Button>
           <Paragraph size="$2" color="$color10">
             {savedCount} casos
           </Paragraph>
         </XStack>
+        {batch ? (
+          <YStack
+            position="absolute"
+            t={0}
+            b={0}
+            l={0}
+            r={0}
+            items="center"
+            justify="center"
+            gap="$3"
+            bg="rgba(0,0,0,0.75)"
+            z={30}
+          >
+            <Spinner size="large" color="$color1" />
+            <Paragraph color="white" size="$5">
+              {batch.doneUnits}/{batch.totalUnits}
+            </Paragraph>
+            <Paragraph color="white" size="$2">
+              caso {batch.caseIndex + 1} de {batch.totalCases} · {batch.variant}
+            </Paragraph>
+            <Button size="$3" onPress={() => (cancelBatch.current = true)}>
+              Cancelar
+            </Button>
+          </YStack>
+        ) : null}
         {busy ? (
           <YStack
             position="absolute"

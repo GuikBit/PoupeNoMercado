@@ -45,8 +45,9 @@ sempre que a quantidade muda.
 | **Fase** | Fase 0 — Etapas 0, 1 e 2 ✅ · Etapa 3 parcial (parser ✅, pré-processamento ⏳) |
 | **Corpus** | 51 casos reais de campo (08/08/2026) em `app/fixtures/lab-2026-08-08.cases.json` + 51 imagens em `app/fixtures/labels/` |
 | **Onde está** | Cloud Vision: M1 A+B **100%**, M2 92,3%, M3 **0%**. ML Kit: M1 A+B 62,5%, M3 **0%**, p95 266 ms |
-| **Próximo passo** | Pré-processamento do preço em fonte grande (binarização adaptativa + upscale 2×) — o ML Kit perde os dígitos do preço em negrito. **Exige ciclo no device**: o `analyze:lab` re-roda o parser, não o motor |
-| **Decisão pendente** | ADR-002 (qual motor). Em aberto de propósito: o Cloud Vision é preciso mas viola o offline-first e falha M6 por 3,4×; o ML Kit é rápido e offline mas depende do pré-processamento. Decidir só com o item acima medido |
+| **Pré-processamento** | ❌ testado e descartado (8 variantes × 51 casos). A prescrição original — binarização adaptativa + upscale 2× — é **metade** da linha de base. Teto teórico com seleção perfeita: 84,4% em A+B |
+| **Próximo passo** | 🚪 **Cenário 4** de `docs/06` §6 disparado: parser e pré-processamento exercidos, o limite é o motor. Escolher o escalonamento — PaddleOCR/ONNX · VLM de fallback · entrada manual assistida · ou o híbrido ML Kit+abstenção |
+| **Decisão pendente** | ADR-002 (qual motor). O Cloud Vision acerta tudo mas viola o offline-first e falha M6 por 3,4×; o ML Kit é rápido, offline e **nunca erra com convicção** (M3 0%, abstenção 85,7%), mas só acerta 62,5% |
 | **Leitura obrigatória** | `docs/resultados/lab-2026-08-10.md` — o que a coleta revelou, inclusive 9 gabaritos que vieram errados |
 
 ### Notas da Etapa 1

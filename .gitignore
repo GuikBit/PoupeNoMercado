@@ -45,6 +45,8 @@ Encomendas/
 # parciais que chegam pelo compartilhamento do app.
 Etiquetas/index*.json
 docs/resultados/index*.json
+# Idem para o resultado do Lote: a cópia canônica é app/fixtures/batch-*.json.
+docs/resultados/batch*.json
 
 # ── Editores / SO ─────────────────────────────────────────
 .vscode/
