@@ -1,0 +1,236 @@
+/**
+ * Escaneamento: câmera → leitura → confirmação → carrinho.
+ *
+ * O fluxo volta para a câmera depois de cada item confirmado (escaneamento
+ * contínuo, 5.3): sair da câmera a cada produto tornaria a compra insuportável.
+ *
+ * A entrada manual está sempre a um toque, em qualquer estado — princípio nº 4,
+ * o usuário jamais fica travado no corredor.
+ */
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button, Paragraph, ScrollView, Spinner, XStack, YStack } from 'tamagui';
+
+import { appRepoContext } from '../db/client';
+import { saveReading } from '../db/repositories/readingRepo';
+import type { PricingPolicy } from '../domain/pricing';
+import { CaptureView } from '../lab/CaptureView';
+import { registerDefaultEngines } from '../ocr/engines/bootstrap';
+import type { ImageRef } from '../ocr/types';
+import { scanLabel,type ScanOutcome } from '../scan/scanPipeline';
+import { useTripStore } from '../state/tripStore';
+import { NumericPad } from '../trip/NumericPad';
+import { QuantityStepper } from '../trip/QuantityStepper';
+import { ReadingConfirm } from '../trip/ReadingConfirm';
+import { formatCents, formatQuantity, gramsToQuantity } from '../ui/money';
+
+type Etapa =
+  | { nome: 'camera' }
+  | { nome: 'lendo' }
+  | { nome: 'confirmar'; resultado: ScanOutcome }
+  | { nome: 'manual'; precoCents: number; nome_produto: string };
+
+export default function ScanScreen() {
+  const router = useRouter();
+  const ctx = useMemo(() => appRepoContext(), []);
+  const { trip, attach, addItem } = useTripStore();
+
+  const [etapa, setEtapa] = useState<Etapa>({ nome: 'camera' });
+  const [quantidade, setQuantidade] = useState(1);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    registerDefaultEngines();
+    attach(ctx);
+  }, [attach, ctx]);
+
+  const voltarParaCamera = useCallback(() => {
+    setEtapa({ nome: 'camera' });
+    setQuantidade(1);
+    setErro(null);
+  }, []);
+
+  async function processar(photo: ImageRef) {
+    setEtapa({ nome: 'lendo' });
+    setErro(null);
+    try {
+      const resultado = await scanLabel(photo, { capturedAt: new Date().toISOString() });
+
+      if (resultado.reading) {
+        // Auditoria: guarda OCR bruto e parse — é o que permite melhorar o
+        // parser depois sem voltar ao mercado.
+        saveReading(ctx, {
+          tripId: trip?.id ?? null,
+          reading: resultado.reading,
+          ocrRaw: resultado.ocrRaw,
+          imagePath: resultado.imageUri,
+        });
+      }
+
+      if (resultado.decision.action === 'manual' || !resultado.reading) {
+        setEtapa({ nome: 'manual', precoCents: 0, nome_produto: '' });
+        return;
+      }
+      setEtapa({ nome: 'confirmar', resultado });
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e));
+      setEtapa({ nome: 'camera' });
+    }
+  }
+
+  function confirmarLeitura(resultado: ScanOutcome) {
+    const reading = resultado.reading;
+    if (!reading) return;
+    addItem({
+      rawName: reading.product.rawName,
+      policy: reading.pricing,
+      qty: quantidade,
+      entryMode: 'scan',
+      internalCode: reading.product.internalCode ?? null,
+      ean: reading.product.ean ?? null,
+      confidence: reading.confidence.score,
+    });
+    voltarParaCamera();
+  }
+
+  function salvarManual(precoCents: number, nomeProduto: string) {
+    const policy: PricingPolicy = {
+      basePriceCents: precoCents,
+      saleUnit: 'UN',
+      tiers: [],
+    };
+    addItem({
+      rawName: nomeProduto || 'Item sem nome',
+      policy,
+      qty: quantidade,
+      entryMode: 'manual',
+    });
+    voltarParaCamera();
+  }
+
+  if (!trip) {
+    return (
+      <YStack flex={1} items="center" justify="center" gap="$3" p="$4">
+        <Paragraph text="center" color="$color10">
+          Nenhuma compra em andamento.
+        </Paragraph>
+        <Button theme="accent" onPress={() => router.replace('/')}>
+          Voltar
+        </Button>
+      </YStack>
+    );
+  }
+
+  if (etapa.nome === 'confirmar') {
+    const reading = etapa.resultado.reading;
+    if (!reading) return null;
+    return (
+      <ScrollView flex={1} contentContainerStyle={{ pb: '$8' }}>
+        <QuantityStepper
+          quantity={quantidade}
+          saleUnit={reading.pricing.saleUnit}
+          onChange={setQuantidade}
+        />
+        <ReadingConfirm
+          reading={reading}
+          decision={etapa.resultado.decision}
+          quantity={quantidade}
+          onConfirm={() => confirmarLeitura(etapa.resultado)}
+          onCorrectPrice={() =>
+            setEtapa({
+              nome: 'manual',
+              precoCents: reading.pricing.basePriceCents,
+              nome_produto: reading.product.rawName,
+            })
+          }
+          onDiscard={voltarParaCamera}
+        />
+      </ScrollView>
+    );
+  }
+
+  if (etapa.nome === 'manual') {
+    return (
+      <YStack flex={1} gap="$3" p="$3">
+        <Paragraph size="$2" color="$color10">
+          {etapa.nome_produto
+            ? `Corrigindo: ${etapa.nome_produto}`
+            : 'Não deu para ler a etiqueta — digite o preço'}
+        </Paragraph>
+        <NumericPad
+          label="Preço de 1 unidade"
+          valueCents={etapa.precoCents}
+          onChange={(precoCents) => setEtapa({ ...etapa, precoCents })}
+        />
+        <QuantityStepper quantity={quantidade} saleUnit="UN" onChange={setQuantidade} />
+        <XStack gap="$2">
+          <Button flex={1} onPress={voltarParaCamera}>
+            Cancelar
+          </Button>
+          <Button
+            flex={2}
+            theme="accent"
+            disabled={etapa.precoCents <= 0}
+            onPress={() => salvarManual(etapa.precoCents, etapa.nome_produto)}
+          >
+            {`Adicionar ${formatCents(etapa.precoCents * quantidade)}`}
+          </Button>
+        </XStack>
+      </YStack>
+    );
+  }
+
+  return (
+    <YStack flex={1}>
+      <CaptureView onPhoto={processar} onError={setErro} disabled={etapa.nome === 'lendo'} />
+
+      <XStack position="absolute" t={0} l={0} r={0} p="$2" gap="$2" justify="space-between">
+        <Button size="$3" onPress={() => router.back()}>
+          Voltar
+        </Button>
+        {/* Princípio nº 4: o manual nunca está a mais de um toque. */}
+        <Button
+          size="$3"
+          onPress={() => setEtapa({ nome: 'manual', precoCents: 0, nome_produto: '' })}
+        >
+          Digitar preço
+        </Button>
+      </XStack>
+
+      {etapa.nome === 'lendo' ? (
+        <YStack
+          position="absolute"
+          t={0}
+          b={0}
+          l={0}
+          r={0}
+          items="center"
+          justify="center"
+          gap="$2"
+          bg="rgba(0,0,0,0.5)"
+        >
+          <Spinner size="large" color="$color1" />
+          <Paragraph color="white">Lendo a etiqueta…</Paragraph>
+        </YStack>
+      ) : null}
+
+      {erro ? (
+        <Paragraph
+          position="absolute"
+          b={0}
+          l={0}
+          r={0}
+          p="$2"
+          size="$2"
+          color="$red10"
+          bg="rgba(255,255,255,0.92)"
+        >
+          {erro}
+        </Paragraph>
+      ) : null}
+    </YStack>
+  );
+}
+
+/** Reexport para manter a superfície de import da tela pequena. */
+export { formatQuantity, gramsToQuantity };

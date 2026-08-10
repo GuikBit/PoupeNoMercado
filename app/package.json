@@ -23,7 +23,8 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-vision-camera": "^4.7.3",
-    "tamagui": "^2.6.2"
+    "tamagui": "^2.6.2",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",

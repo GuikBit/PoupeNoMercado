@@ -10,6 +10,9 @@ export default function RootLayout() {
       <StatusBar style="auto" />
       <Stack>
         <Stack.Screen name="index" options={{ title: 'Poupe no Mercado' }} />
+        <Stack.Screen name="trip" options={{ title: 'Compra' }} />
+        {/* Sem cabeçalho: a câmera ocupa a tela toda e os controles flutuam. */}
+        <Stack.Screen name="scan" options={{ title: 'Escanear', headerShown: false }} />
         <Stack.Screen name="lab" options={{ title: 'Laboratório de Etiquetas' }} />
       </Stack>
     </TamaguiProvider>
