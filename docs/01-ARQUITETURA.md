@@ -33,7 +33,8 @@ quando houver rede.
 
 ### ADR-002 — OCR on-device atrás de uma interface
 
-**Status:** Aceito · **Motor específico:** a decidir por medição (`06-PLANO-VALIDACAO.md`)
+**Status:** Aceito · **Motor específico:** ✅ decidido em 10/08/2026 — ver
+"Escolha do motor" ao final desta ADR
 
 **Contexto.** Três caminhos: OCR na nuvem, OCR on-device com biblioteca de
 terceiro, ou OCR próprio (PaddleOCR/Tesseract). Restrições: funcionar offline,
@@ -61,6 +62,67 @@ empírica no Laboratório de Etiquetas, não por análise no papel.
 - ✅ Permite comparar motores no mesmo frame
 - ❌ Camada de abstração a manter, e o menor denominador comum entre motores
 - ❌ Motores diferentes reportam confiança de formas diferentes — precisa normalização
+
+#### Escolha do motor — decidida em 10/08/2026
+
+Medição completa em `docs/resultados/lab-2026-08-10.md` (51 casos reais,
+45 com gabarito verificado na imagem).
+
+| | ML Kit | Cloud Vision |
+|---|---|---|
+| M1 preço (A+B) | 62,5% | **100,0%** |
+| M2 faixas | 46,2% | 92,3% |
+| Latência p50/p95 | **126 / 266 ms** | 1603 / 2730 ms |
+| Offline | **sim** | não |
+| Custo/leitura | **R$ 0** | ~R$ 0,008 |
+
+Nenhum dos dois é titular sozinho. O Cloud Vision lê tudo mas viola o princípio
+nº 1 (offline-first) e estoura M6 em 3,4×; o ML Kit é rápido, gratuito e offline
+mas lê pouco mais da metade.
+
+Duas direções foram exercidas antes de aceitar isso, e ambas se esgotaram:
+
+- **Parser** — endurecido até o Cloud Vision atingir 100% *com o mesmo parser*.
+  Prova que o parser não é o limite.
+- **Pré-processamento** — 8 variantes × 51 casos. A prescrição original
+  (binarização adaptativa + upscale 2×) rende **metade** da linha de base. Teto
+  teórico com seleção perfeita por caso: 84,4%, ainda abaixo do limiar de 85%.
+
+**Decisão: ML Kit é o titular, com confirmação humana obrigatória; Cloud Vision
+é escalonamento oportunista, nunca no caminho crítico.**
+
+```
+captura → ML Kit (on-device, ~130 ms, sempre)
+            ├─ leitura utilizável (75,6% dos casos)  → pré-preenche, usuário CONFIRMA
+            └─ abstém (24,4%)                        → entrada manual (1 toque)
+                                                        └─ Cloud Vision se houver
+                                                           rede, em background,
+                                                           nunca bloqueando
+```
+
+O que sustenta o "confirmar sempre": não existe faixa de confiança em que o
+ML Kit preencha sozinho e valha a pena. Para zero preço errado o limiar teria de
+ser 0,75, cobrindo **8,9%** das leituras. Mas ele produz leitura em 75,6% dos
+casos com 91,2% de acerto — pré-preencher poupa digitação em três de cada quatro
+etiquetas, e o erro que resta fica visível na tela do usuário, não escondido num
+total.
+
+A promessa do produto passa a ser *"escaneia, mostra, você confirma"*, não
+*"escaneia e soma sozinho"*. Prometer o segundo com estes números seria vender
+um total em que não se pode confiar — exatamente o que o princípio nº 5 proíbe.
+
+**Consequências desta escolha.**
+- ✅ Funciona no corredor sem sinal; custo marginal zero no caminho principal
+- ✅ Nenhum preço errado entra no total sem passar pelos olhos do usuário
+- ✅ Trocar o titular por PaddleOCR/ONNX depois é mudar configuração
+- ❌ Um toque de confirmação por item — mais fricção que o ideal
+- ❌ Cloud Vision passa a exigir política de privacidade (imagem sai do device)
+      e controle de custo; é opcional e desligável
+- ⚠️ **A confiança não é comparável entre motores.** O ML Kit satura em 0,78 e
+      nunca alcança o limiar 0,85 de `02-MOTOR-RECONHECIMENTO.md` §7.3 — o que
+      fez o M3 dele sair 0% por construção, não por mérito. Os limiares agora
+      são **por motor** (`src/domain/acceptance.ts`). Normalizar a escala entre
+      motores é dívida aberta.
 
 ---
 

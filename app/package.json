@@ -50,7 +50,8 @@
     "analyze:lab": "tsx scripts/analyze-lab.ts",
     "lab:failures": "tsx scripts/lab-failures.ts",
     "lab:gate": "tsx scripts/lab-gate.ts",
-    "analyze:batch": "tsx scripts/analyze-batch.ts"
+    "analyze:batch": "tsx scripts/analyze-batch.ts",
+    "confidence:curve": "tsx scripts/confidence-curve.ts"
   },
   "private": true
 }
