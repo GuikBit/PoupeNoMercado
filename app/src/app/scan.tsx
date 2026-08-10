@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Paragraph, ScrollView, Spinner, XStack, YStack } from 'tamagui';
 
 import { appRepoContext } from '../db/client';
+import { itemsOfList, setListItemChecked } from '../db/repositories/listRepo';
 import { saveReading } from '../db/repositories/readingRepo';
 import type { PricingPolicy } from '../domain/pricing';
 import { CaptureView } from '../lab/CaptureView';
@@ -19,10 +20,13 @@ import { registerDefaultEngines } from '../ocr/engines/bootstrap';
 import type { ImageRef } from '../ocr/types';
 import { scanLabel,type ScanOutcome } from '../scan/scanPipeline';
 import { useTripStore } from '../state/tripStore';
+import { type ListMatch, matchScanToList, suggestionLabel } from '../trip/listMatching';
 import { NumericPad } from '../trip/NumericPad';
 import { QuantityStepper } from '../trip/QuantityStepper';
 import { ReadingConfirm } from '../trip/ReadingConfirm';
+import { vibrar } from '../ui/feedback';
 import { formatCents, formatQuantity, gramsToQuantity } from '../ui/money';
+import { useKeepAwakeDuringTrip } from '../ui/useKeepAwake';
 
 type Etapa =
   | { nome: 'camera' }
@@ -38,6 +42,12 @@ export default function ScanScreen() {
   const [etapa, setEtapa] = useState<Etapa>({ nome: 'camera' });
   const [quantidade, setQuantidade] = useState(1);
   const [erro, setErro] = useState<string | null>(null);
+  /** Casamento pendente de resposta do usuário (score entre 0,45 e 0,75). */
+  const [sugestao, setSugestao] = useState<ListMatch | null>(null);
+
+  // A tela fica ligada durante o escaneamento: apagar entre um item e outro
+  // obrigaria a desbloquear dezenas de vezes por compra.
+  useKeepAwakeDuringTrip();
 
   useEffect(() => {
     registerDefaultEngines();
@@ -49,6 +59,20 @@ export default function ScanScreen() {
     setQuantidade(1);
     setErro(null);
   }, []);
+
+  /**
+   * Casa o produto com a lista. `auto` marca sozinho; `suggest` pergunta —
+   * marcar o item errado faz a pessoa sair do mercado sem o produto (§8).
+   */
+  function casarComLista(nomeProduto: string) {
+    if (!trip?.listId) return;
+    const match = matchScanToList(nomeProduto, itemsOfList(ctx.db, trip.listId));
+    if (match.action === 'auto' && match.item) {
+      setListItemChecked(ctx, match.item.id, true);
+      return;
+    }
+    if (match.action === 'suggest') setSugestao(match);
+  }
 
   async function processar(photo: ImageRef) {
     setEtapa({ nome: 'lendo' });
@@ -68,9 +92,11 @@ export default function ScanScreen() {
       }
 
       if (resultado.decision.action === 'manual' || !resultado.reading) {
+        void vibrar('falhou');
         setEtapa({ nome: 'manual', precoCents: 0, nome_produto: '' });
         return;
       }
+      void vibrar('lido');
       setEtapa({ nome: 'confirmar', resultado });
     } catch (e) {
       setErro(e instanceof Error ? e.message : String(e));
@@ -90,6 +116,8 @@ export default function ScanScreen() {
       ean: reading.product.ean ?? null,
       confidence: reading.confidence.score,
     });
+    void vibrar('confirmado');
+    casarComLista(reading.product.rawName);
     voltarParaCamera();
   }
 
@@ -105,6 +133,8 @@ export default function ScanScreen() {
       qty: quantidade,
       entryMode: 'manual',
     });
+    void vibrar('confirmado');
+    if (nomeProduto) casarComLista(nomeProduto);
     voltarParaCamera();
   }
 
@@ -211,6 +241,30 @@ export default function ScanScreen() {
         >
           <Spinner size="large" color="$color1" />
           <Paragraph color="white">Lendo a etiqueta…</Paragraph>
+        </YStack>
+      ) : null}
+
+      {/* Casamento incerto: pergunta. Marcar errado tira a pessoa do mercado
+          sem o produto — falso positivo custa mais que falso negativo (§8). */}
+      {sugestao?.item ? (
+        <YStack position="absolute" b="$10" l="$3" r="$3" gap="$2" p="$3" bg="$background" rounded="$4">
+          <Paragraph size="$3">{suggestionLabel(sugestao)}</Paragraph>
+          <XStack gap="$2">
+            <Button flex={1} size="$3" onPress={() => setSugestao(null)}>
+              Não
+            </Button>
+            <Button
+              flex={1}
+              size="$3"
+              theme="accent"
+              onPress={() => {
+                if (sugestao.item) setListItemChecked(ctx, sugestao.item.id, true);
+                setSugestao(null);
+              }}
+            >
+              Marcar
+            </Button>
+          </XStack>
         </YStack>
       ) : null}
 

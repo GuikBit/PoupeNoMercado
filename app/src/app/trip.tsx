@@ -14,13 +14,17 @@ import { NumericPad } from '../trip/NumericPad';
 import { QuantityStepper } from '../trip/QuantityStepper';
 import { TotalBar } from '../trip/TotalBar';
 import { formatCents, formatQuantity, gramsToQuantity } from '../ui/money';
+import { useKeepAwakeDuringTrip } from '../ui/useKeepAwake';
 
 export default function TripScreen() {
   const router = useRouter();
   const ctx = useMemo(() => appRepoContext(), []);
-  const { trip, lines, budget, attach, setQty, remove, toggleStoreCard, finish, undoLastAdd, lastAddedId } =
+  const { trip, lines, budget, attach, setQty, remove, toggleStoreCard, undoLastAdd, lastAddedId } =
     useTripStore();
   const [pesando, setPesando] = useState<{ itemId: string; gramas: number } | null>(null);
+
+  // A compra pode durar 40 minutos; a tela não pode apagar no meio.
+  useKeepAwakeDuringTrip();
 
   useFocusEffect(
     useCallback(() => {
@@ -132,14 +136,7 @@ export default function TripScreen() {
         ))}
 
         <Separator />
-        <Button
-          onPress={() => {
-            finish();
-            router.replace('/');
-          }}
-        >
-          Finalizar compra
-        </Button>
+        <Button onPress={() => router.push('/summary')}>Finalizar compra</Button>
       </ScrollView>
 
       <YStack position="absolute" b={0} l={0} r={0} gap="$2" p="$3" bg="$background">

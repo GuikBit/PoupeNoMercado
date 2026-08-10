@@ -258,24 +258,33 @@ sem abrir o app. — ✅ `cart.test.ts` faz exatamente isso no último bloco.
 > misturar faria upload de imagem competir com a sincronização do carrinho.
 
 ### 5.2 Telas
-- [ ] Home: listas + botão "Iniciar compra"
-- [ ] Lista: criar, editar, reordenar, categorizar
-- [ ] **Compra ativa:** total grande, barra de orçamento, itens escaneados
-- [ ] **Escaneamento:** câmera + guia + resultado + seletor de quantidade
-- [ ] Confirmação por nível de confiança (alta / média / baixa) — §7.3
-- [ ] **Entrada manual:** teclado numérico grande, sempre a 1 toque
-- [ ] Fluxo de peso para itens KG
-- [ ] Edição de item já no carrinho
-- [ ] Finalização: resumo, comparação com o orçamento
+- [x] Home: listas + botão "Iniciar compra"
+- [x] Lista: criar, editar, reordenar, marcar
+      (categorizar fica para depois — a coluna existe no schema)
+- [x] **Compra ativa:** total grande, barra de orçamento, itens escaneados
+- [x] **Escaneamento:** câmera + guia + resultado + seletor de quantidade
+- [x] Confirmação por nível de confiança — ⚠️ **não** como §7.3 previa.
+      O que muda por nível não é *se* confirma, é o destaque do que pode estar
+      errado: TODA leitura é confirmada (ADR-002). Campo frágil ganha aviso
+      nominal, porque "confira" genérico não ajuda a conferir.
+- [x] **Entrada manual:** teclado de caixa (dígitos pela direita), sempre a 1 toque
+- [x] Fluxo de peso para itens KG (digitado em gramas)
+- [x] Edição de item já no carrinho (quantidade, peso, remover)
+- [x] Finalização: resumo, comparação com o orçamento, economia por faixa e
+      o que ficou pendente na lista
+- [x] **Casamento com a lista ao escanear** (§8) — marca sozinho acima de 0,75,
+      pergunta entre 0,45 e 0,75, cala abaixo
 - [ ] Histórico + "duplicar esta compra"
 - [ ] Configurações: cartão da loja, consentimentos, sobre
 
 ### 5.3 UX crítica
-- [ ] Escaneamento contínuo — não sair da câmera entre itens
-- [ ] Feedback tátil e sonoro na leitura bem-sucedida
-- [ ] Modo de tela sempre ligada durante a compra
-- [ ] Botão de desfazer no último item
-- [ ] Estados vazios e mensagens de erro com linguagem clara
+- [x] Escaneamento contínuo — volta para a câmera a cada item confirmado
+- [x] Feedback tátil na leitura (`expo-haptics`, best-effort — vibração é
+      enfeite e enfeite não derruba o fluxo). **Sonoro não feito.**
+- [x] Modo de tela sempre ligada durante a compra (`expo-keep-awake`, só
+      enquanto a tela está em foco)
+- [x] Botão de desfazer no último item
+- [x] Estados vazios com linguagem clara em lista, carrinho e listas
 
 **✅ Concluída quando:** você faz uma compra real do início ao fim, em modo avião.
 

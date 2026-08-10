@@ -100,6 +100,9 @@ export default function Home() {
       <Button size="$5" onPress={iniciar}>
         Iniciar sem teto
       </Button>
+      <Link href="/lists" asChild>
+        <Button size="$5">Minhas listas</Button>
+      </Link>
 
       <Separator />
       <Link href="/lab" asChild>
